@@ -11,12 +11,12 @@ import (
 func CreateTable(db *sql.DB, ctx context.Context) error { // user
 	sqlStCustomer := `create table if not exists customer 
 		(id serial primary key, 
-		first_name varchar(30) not null, 
-		last_name varchar(30) not null,
-		email varchar(100) not null,
-		phone varchar(30) not null, 
-		login varchar(100),
-		password varchar(255),
+		first_name varchar(30), 
+		last_name varchar(30),
+		email varchar(100),
+		phone varchar(30), 
+		login varchar(100) not null,
+		password varchar(255) not null,
 		created_at timestamp not null default now(),
 		unique(phone, email));`
 

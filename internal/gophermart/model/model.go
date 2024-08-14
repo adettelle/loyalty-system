@@ -3,6 +3,8 @@ package model
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
 	"log"
 	"time"
 
@@ -293,4 +295,67 @@ func GetCustomerByLogin(login string, db *sql.DB, ctx context.Context) (*Custome
 		return nil, err
 	}
 	return &customer, nil
+}
+
+type UserExistsErr struct {
+	login string
+}
+
+func (ue *UserExistsErr) Error() string {
+	return fmt.Sprintf("user %s already exists", ue.login)
+}
+
+func NewUserExistsErr(login string) *UserExistsErr {
+	return &UserExistsErr{
+		login: login,
+	}
+}
+
+func IsUserExistsErr(err error) bool {
+	var customErr *UserExistsErr
+	return errors.As(err, &customErr)
+}
+
+// регистрация пользователя
+func AddUser(login string, password string, db *sql.DB, ctx context.Context) error {
+	sqlUser := `select count(*) > 0 from customer where login = $1 limit 1;`
+	row := db.QueryRowContext(ctx, sqlUser, login)
+
+	// переменная для чтения результата
+	var userEsists bool
+
+	err := row.Scan(&userEsists)
+
+	if err != nil {
+		return err
+	}
+	if userEsists {
+		return NewUserExistsErr(login)
+	}
+
+	sqlSt := `insert into customer (login, "password") values ($1, $2);`
+
+	_, err = db.ExecContext(ctx, sqlSt, login, password)
+	if err != nil {
+		log.Println("error in registering user:", err)
+		return err
+	}
+	log.Println("Registered")
+	return nil
+
+	// if err == sql.ErrNoRows {
+	// 	sqlSt := `insert into customer (login, "password") values ($1, $2);`
+
+	// 	_, err = db.ExecContext(ctx, sqlSt, login, password)
+	// 	if err != nil {
+	// 		log.Println("error in registering user:", err)
+	// 		return err
+	// 	}
+	// 	log.Println("Registered")
+	// 	return nil
+	// } else if pass != "" {
+	// 	// err := "409 Conflict"
+	// 	return errors.New("409 Conflict")
+	// }
+	return err
 }

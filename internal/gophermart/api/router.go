@@ -9,6 +9,7 @@ func NewRouter(storage *DBStorage) chi.Router {
 	r := chi.NewRouter()
 
 	// конфигурирование сервера
+	r.Post("/api/user/register", storage.RegisterCustomer)
 	r.Post("/api/user/login", storage.Login)
 	r.Post("/api/user/orders", mware.AuthMwr(storage.AddOrder, storage.SecretKey))
 	r.Get("/api/user/orders", mware.AuthMwr(storage.GetOrders, storage.SecretKey))

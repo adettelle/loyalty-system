@@ -55,6 +55,16 @@ type OrderResponse struct {
 	SumToWithdraw float64   `json:"sum,omitempty"`
 }
 
+type Customer struct {
+	Login    string `json:"login"`
+	Password string `json:"password"`
+}
+
+type PointsResponse struct {
+	Current   float64 `json:"current"`
+	Withdrawn float64 `json:"withdrawn"`
+}
+
 // type OrdersListResponse struct {
 // 	Orders []OrderResponse `json:"orders"`
 // }
@@ -99,7 +109,7 @@ func (s *DBStorage) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 400 — неверный формат запроса;
+	// 400 — неверный формат запроса; ????????????????????????
 
 	if !security.VerifyUser(auth.Login, auth.Password, s.DB, s.Ctx) {
 		w.WriteHeader(http.StatusUnauthorized) // неверная пара логин/пароль
@@ -225,11 +235,6 @@ func (s *DBStorage) GetOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-}
-
-type PointsResponse struct {
-	Current   float64 `json:"current"`
-	Withdrawn float64 `json:"withdrawn"`
 }
 
 // type PointsListResponse struct {
@@ -441,6 +446,51 @@ func (s *DBStorage) GetWithdrawals(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	w.WriteHeader(http.StatusOK)
+}
+
+// 409 — логин уже занят ????????????????????????
+// После успешной регистрации должна происходить автоматическая аутентификация пользователя ?????????
+func (s *DBStorage) RegisterCustomer(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	log.Println("In RegisterCustomer handler")
+	var buf bytes.Buffer
+	var customer Customer
+
+	// читаем тело запроса
+	_, err := buf.ReadFrom(r.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest) // неверный формат запроса
+		return
+	}
+
+	if err := json.Unmarshal(buf.Bytes(), &customer); err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	// fmt.Println(customer.Login)
+	// fmt.Println(customer.Password)
+	err = model.AddUser(customer.Login, customer.Password, s.DB, s.Ctx)
+	if err != nil {
+		if model.IsUserExistsErr(err) {
+			w.WriteHeader(http.StatusConflict)
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	token, err := security.GenerateJwtToken(s.SecretKey, customer.Login)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Authorization", "Bearer "+token)
+
 	w.WriteHeader(http.StatusOK)
 }
 
