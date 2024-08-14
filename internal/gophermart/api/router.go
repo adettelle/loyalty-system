@@ -10,10 +10,10 @@ func NewRouter(storage *DBStorage) chi.Router {
 
 	// конфигурирование сервера
 	r.Post("/api/user/login", storage.Login)
-	r.Post("/api/user/orders", mware.AuthMwr(storage.AddOrder))
-	r.Get("/api/user/orders", mware.AuthMwr(storage.GetOrders))
-	r.Get("/api/user/balance", mware.AuthMwr(storage.GetBalance))
-	r.Post("/api/user/balance/withdraw", mware.AuthMwr(storage.PostWithdraw))
-	r.Get("/api/user/withdrawals", mware.AuthMwr(storage.GetWithdrawals))
+	r.Post("/api/user/orders", mware.AuthMwr(storage.AddOrder, storage.SecretKey))
+	r.Get("/api/user/orders", mware.AuthMwr(storage.GetOrders, storage.SecretKey))
+	r.Get("/api/user/balance", mware.AuthMwr(storage.GetBalance, storage.SecretKey))
+	r.Post("/api/user/balance/withdraw", mware.AuthMwr(storage.PostWithdraw, storage.SecretKey))
+	r.Get("/api/user/withdrawals", mware.AuthMwr(storage.GetWithdrawals, storage.SecretKey))
 	return r
 }

@@ -14,6 +14,7 @@ type Config struct {
 	Address              string `env:"RUN_ADDRESS" flag:"a" default:"localhost:8080"`
 	DBUri                string `env:"DATABASE_URI" flag:"d" default:""`
 	AccrualSystemAddress string `env:"ACCRUAL_SYSTEM_ADDRESS" flag:"r" default:"localhost:8081"`
+	Key                  string `env:"KEY" flag:"k"` // ключ для подписи
 }
 
 func New() (*Config, error) {
@@ -27,6 +28,7 @@ func New() (*Config, error) {
 	flag.StringVar(&cfg.DBUri, "d", cfg.DBUri, "db connection params")
 	flag.StringVar(&cfg.AccrualSystemAddress, "r", cfg.AccrualSystemAddress,
 		"Accrual system address localhost:port")
+	flag.StringVar(&cfg.Key, "k", cfg.Key, "my_secret_key")
 
 	flag.Parse()
 

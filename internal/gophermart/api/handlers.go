@@ -105,7 +105,7 @@ func (s *DBStorage) Login(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized) // неверная пара логин/пароль
 		return
 	}
-	token, err := security.GenerateJwtToken(auth.Login)
+	token, err := security.GenerateJwtToken(s.SecretKey, auth.Login)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

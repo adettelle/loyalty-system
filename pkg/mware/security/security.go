@@ -10,9 +10,11 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var (
-	secret = []byte("my_secret_key")
-)
+// var (
+// 	secret = []byte("my_secret_key")
+// )
+
+//var secret []byte
 
 type UserPassword struct {
 	login string
@@ -46,7 +48,7 @@ func VerifyUser(login string, pass string, db *sql.DB, ctx context.Context) bool
 // token — JWT пользователя.
 // если у пользователь ввел правильные данные, и у него есть необходимая привилегия -
 // возвращаем true и логин пользователя, иначе - false
-func VerifyToken(token string) (string, bool) {
+func VerifyToken(secret []byte, token string) (string, bool) {
 	log.Println("in VerifyToken")
 	jwtToken, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
 		return secret, nil
@@ -81,7 +83,7 @@ func VerifyToken(token string) (string, bool) {
 	return login, true
 }
 
-func GenerateJwtToken(userLogin string) (string, error) {
+func GenerateJwtToken(secret []byte, userLogin string) (string, error) {
 	// создаём payload
 	claims := jwt.MapClaims{
 		"login": userLogin,

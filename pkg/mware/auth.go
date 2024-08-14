@@ -9,7 +9,7 @@ import (
 )
 
 // AuthMwr добавляет аутентификацию пользователя и возвращает новый http.Handler
-func AuthMwr(h http.HandlerFunc) http.HandlerFunc {
+func AuthMwr(h http.HandlerFunc, secret []byte) http.HandlerFunc {
 	authFn := func(w http.ResponseWriter, r *http.Request) {
 		// получаем http header вида 'Bearer {jwt}'
 		authHeaderValue := r.Header.Get("Authorization")
@@ -24,7 +24,7 @@ func AuthMwr(h http.HandlerFunc) http.HandlerFunc {
 			bearerToken := strings.Split(authHeaderValue, " ")
 			log.Println("bearerToken:", bearerToken[1])
 			if len(bearerToken) == 2 {
-				login, ok := security.VerifyToken(bearerToken[1])
+				login, ok := security.VerifyToken(secret, bearerToken[1])
 				if !ok {
 					w.WriteHeader(http.StatusUnauthorized) // пользователь не аутентифицирован
 					return
