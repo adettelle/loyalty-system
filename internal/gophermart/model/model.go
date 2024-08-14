@@ -342,20 +342,4 @@ func AddUser(login string, password string, db *sql.DB, ctx context.Context) err
 	}
 	log.Println("Registered")
 	return nil
-
-	// if err == sql.ErrNoRows {
-	// 	sqlSt := `insert into customer (login, "password") values ($1, $2);`
-
-	// 	_, err = db.ExecContext(ctx, sqlSt, login, password)
-	// 	if err != nil {
-	// 		log.Println("error in registering user:", err)
-	// 		return err
-	// 	}
-	// 	log.Println("Registered")
-	// 	return nil
-	// } else if pass != "" {
-	// 	// err := "409 Conflict"
-	// 	return errors.New("409 Conflict")
-	// }
-	return err
 }
