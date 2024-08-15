@@ -11,10 +11,6 @@ import (
 func CreateTable(db *sql.DB, ctx context.Context) error { // user
 	sqlStCustomer := `create table if not exists customer 
 		(id serial primary key, 
-		first_name varchar(30), 
-		last_name varchar(30),
-		email varchar(100),
-		phone varchar(30), 
 		login varchar(100) not null,
 		password varchar(255) not null,
 		created_at timestamp not null default now(),
@@ -25,11 +21,11 @@ func CreateTable(db *sql.DB, ctx context.Context) error { // user
 		return err
 	}
 
-	statusType := `create type status_type_enum as enum ('new', 'processing', 'invalid', 'processed');`
-	_, err = db.ExecContext(ctx, statusType) // , model.StatusNew, model.StatusProcessing, model.StatusInvalid, model.StatusProcessed)
-	if err != nil {
-		return err
-	}
+	// statusType := `create type status_type_enum as enum ('new', 'processing', 'invalid', 'processed');`
+	// _, err = db.ExecContext(ctx, statusType) // , model.StatusNew, model.StatusProcessing, model.StatusInvalid, model.StatusProcessed)
+	// if err != nil {
+	// 	return err
+	// }
 
 	sqlStOrder := `create table if not exists "order"
 		(id serial primary key,
@@ -46,11 +42,11 @@ func CreateTable(db *sql.DB, ctx context.Context) error { // user
 	}
 
 	// начисления и списания
-	transactionType := `create type transaction_type_enum as enum ('accrual', 'withdrawal');`
-	_, err = db.ExecContext(ctx, transactionType) // , model.TransactionAccrual, model.TransactionWithdrawal)
-	if err != nil {
-		return err
-	}
+	// transactionType := `create type transaction_type_enum as enum ('accrual', 'withdrawal');`
+	// _, err = db.ExecContext(ctx, transactionType) // , model.TransactionAccrual, model.TransactionWithdrawal)
+	// if err != nil {
+	// 	return err
+	// }
 
 	sqlStLoyalty := `create table if not exists loyalty_system
 		(id serial primary key,
@@ -89,11 +85,11 @@ func CreateTable(db *sql.DB, ctx context.Context) error { // user
 		return err
 	}
 
-	rewardType := `create type reward_type_enum as enum ('percent', 'points');`
-	_, err = db.ExecContext(ctx, rewardType) //, model.RewardTypePercent, model.RewardTypePoints)
-	if err != nil {
-		return err
-	}
+	// rewardType := `create type reward_type_enum as enum ('percent', 'points');`
+	// _, err = db.ExecContext(ctx, rewardType) //, model.RewardTypePercent, model.RewardTypePoints)
+	// if err != nil {
+	// 	return err
+	// }
 
 	sqlStReward := `create table if not exists reward
 		(id serial primary key,

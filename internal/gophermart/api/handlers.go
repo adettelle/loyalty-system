@@ -204,6 +204,7 @@ func (s *DBStorage) GetOrders(w http.ResponseWriter, r *http.Request) {
 	}
 	customer, err := model.GetCustomerByLogin(userLogin, s.DB, s.Ctx)
 	if err != nil {
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError) // ошибка с БД
 		return
 	}

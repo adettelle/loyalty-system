@@ -32,11 +32,11 @@ type Order struct {
 }
 
 type Customer struct {
-	ID        int
-	FirstName string
-	LastName  string
-	Email     string
-	Phone     string
+	ID int
+	// FirstName string
+	// LastName  string
+	// Email     string
+	// Phone     string
 	// Roles
 	// IsDeleted
 }
@@ -281,13 +281,13 @@ func WithdrawalsByUser(userID int, db *sql.DB, ctx context.Context) ([]Transacti
 }
 
 func GetCustomerByLogin(login string, db *sql.DB, ctx context.Context) (*Customer, error) {
-	sqlSt := `select id, first_name, last_name, email, phone from customer where login = $1;`
+	sqlSt := `select id from customer where login = $1;`
 
 	row := db.QueryRowContext(ctx, sqlSt, login)
 
 	var customer Customer
 
-	err := row.Scan(&customer.ID, &customer.FirstName, &customer.LastName, &customer.Email, &customer.Phone)
+	err := row.Scan(&customer.ID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // считаем, что это не ошибка, просто не нашли пользователя
