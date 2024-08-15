@@ -22,29 +22,29 @@ func CreateTable(db *sql.DB, ctx context.Context) error { // user
 	}
 
 	// начисления и списания
-	transactionType := `create type transaction_type_enum as enum ('accrual', 'withdrawal');`
-	_, err = db.ExecContext(ctx, transactionType) // , model.TransactionAccrual, model.TransactionWithdrawal)
-	if err != nil {
-		return err
-	}
+	// transactionType := `create type transaction_type_enum as enum ('accrual', 'withdrawal');`
+	// _, err = db.ExecContext(ctx, transactionType) // , model.TransactionAccrual, model.TransactionWithdrawal)
+	// if err != nil {
+	// 	return err
+	// }
 
-	statusType := `create type status_type_enum as enum ('new', 'processing', 'invalid', 'processed');`
-	_, err = db.ExecContext(ctx, statusType) // , model.StatusNew, model.StatusProcessing, model.StatusInvalid, model.StatusProcessed)
-	if err != nil {
-		return err
-	}
+	// statusType := `create type status_type_enum as enum ('new', 'processing', 'invalid', 'processed');`
+	// _, err = db.ExecContext(ctx, statusType) // , model.StatusNew, model.StatusProcessing, model.StatusInvalid, model.StatusProcessed)
+	// if err != nil {
+	// 	return err
+	// }
 
-	rewardType := `create type reward_type_enum as enum ('percent', 'points');`
-	_, err = db.ExecContext(ctx, rewardType) //, model.RewardTypePercent, model.RewardTypePoints)
-	if err != nil {
-		return err
-	}
+	// rewardType := `create type reward_type_enum as enum ('percent', 'points');`
+	// _, err = db.ExecContext(ctx, rewardType) //, model.RewardTypePercent, model.RewardTypePoints)
+	// if err != nil {
+	// 	return err
+	// }
 
 	sqlStOrder := `create table if not exists "order"
 		(id serial primary key,
 		customer_id integer, 
 		number text,
-		status status_type_enum not null, 
+		status varchar(30) not null, 
 		created_at timestamp not null default now(),
 		foreign key (customer_id) references customer (id),
 		unique(number, customer_id));`
@@ -59,7 +59,7 @@ func CreateTable(db *sql.DB, ctx context.Context) error { // user
 		customer_id integer, 
 		order_id integer,
 		points double precision,
-		transacton transaction_type_enum, 
+		transacton varchar(30), 
 		created_at timestamp not null default now(),
 		unique(customer_id, order_id),
 		foreign key (customer_id) references customer (id),
@@ -96,7 +96,7 @@ func CreateTable(db *sql.DB, ctx context.Context) error { // user
 		title varchar(60), 
 		product_id integer references product (id),
 		description varchar(255),
-		reward_type reward_type_enum not null);`
+		reward_type varchar(30) not null);`
 
 	_, err = db.ExecContext(ctx, sqlStReward)
 	if err != nil {
