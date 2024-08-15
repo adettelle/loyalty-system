@@ -11,10 +11,10 @@ import (
 )
 
 type Config struct {
-	Address              string `env:"RUN_ADDRESS" flag:"a" default:"localhost:8080"`
-	DBUri                string `env:"DATABASE_URI" flag:"d" default:""`
-	AccrualSystemAddress string `env:"ACCRUAL_SYSTEM_ADDRESS" flag:"r" default:"localhost:8081"`
-	Key                  string `env:"KEY" flag:"k"` // ключ для подписи
+	Address              string `envconfig:"RUN_ADDRESS" flag:"a" default:"localhost:8080"`
+	DBUri                string `envconfig:"DATABASE_URI" flag:"d" default:""`
+	AccrualSystemAddress string `envconfig:"ACCRUAL_SYSTEM_ADDRESS" flag:"r" default:"localhost:8081"`
+	Key                  string `envconfig:"KEY" flag:"k"` // ключ для подписи
 }
 
 func New() (*Config, error) {
