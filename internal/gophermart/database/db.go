@@ -14,7 +14,7 @@ func CreateTable(db *sql.DB, ctx context.Context) error { // user
 		login varchar(100) not null,
 		password varchar(255) not null,
 		created_at timestamp not null default now(),
-		unique(phone, email));`
+		unique(login));`
 
 	_, err := db.ExecContext(ctx, sqlStCustomer)
 	if err != nil {
