@@ -8,35 +8,35 @@ import (
 
 	"github.com/adettelle/loyalty-system/internal/gophermart/api"
 	"github.com/adettelle/loyalty-system/internal/gophermart/config"
-	"github.com/adettelle/loyalty-system/internal/gophermart/database"
+	// "github.com/adettelle/loyalty-system/internal/gophermart/database"
 )
 
 func main() {
-	var uri string
+	// var uri string
 
 	config, err := config.New()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if config.DBUri != "" {
-		uri = config.DBUri
-	}
+	// if config.DBUri != "" {
+	// 	uri = config.DBUri
+	// }
 
-	db, err := database.Connect(uri)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// db, err := database.Connect(uri)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	err = database.CreateTable(db, context.Background())
-	if err != nil {
-		log.Fatal(err)
-	}
+	// err = database.CreateTable(db, context.Background())
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	defer db.Close()
+	// defer db.Close()
 
 	storage := &api.DBStorage{
-		DB:        db,
+		DB:        nil,
 		Ctx:       context.Background(),
 		SecretKey: []byte(config.Key),
 	}
