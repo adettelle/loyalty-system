@@ -28,7 +28,7 @@ type Order struct {
 	Status      string
 	Points      float64
 	Transaction *string
-	CratedAt    time.Time
+	CreatedAt   time.Time
 }
 
 type Customer struct {
@@ -46,8 +46,8 @@ type TransactionW struct {
 	// Id       string
 	OrderNumber string
 	// Status   string
-	Points   float64
-	CratedAt time.Time
+	Points    float64
+	CreatedAt time.Time
 }
 
 // // если возврат (0, err) - это значит, что юзера с таким заказом нет
@@ -183,7 +183,7 @@ func GetOrdersByUser(userID int, db *sql.DB, ctx context.Context) ([]Order, erro
 	// пробегаем по всем записям
 	for rows.Next() {
 		var ord Order
-		err := rows.Scan(&ord.ID, &ord.Number, &ord.Status, &ord.Points, &ord.Transaction, &ord.CratedAt)
+		err := rows.Scan(&ord.ID, &ord.Number, &ord.Status, &ord.Points, &ord.Transaction, &ord.CreatedAt)
 		if err != nil {
 			log.Println("error: ", err)
 			return nil, err
@@ -270,7 +270,7 @@ func WithdrawalsByUser(userID int, db *sql.DB, ctx context.Context) ([]Transacti
 	// пробегаем по всем записям
 	for rows.Next() {
 		var tr TransactionW
-		err := rows.Scan(&tr.OrderNumber, &tr.Points, &tr.CratedAt)
+		err := rows.Scan(&tr.OrderNumber, &tr.Points, &tr.CreatedAt)
 		if err != nil {
 			return nil, err
 		}

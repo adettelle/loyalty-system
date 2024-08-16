@@ -42,7 +42,7 @@ type Auth struct {
 type TransactionWResponse struct {
 	OrderNumber string    `json:"order"`
 	Points      float64   `json:"sum"`
-	CratedAt    time.Time `json:"crated_at"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 type OrderResponse struct {
@@ -51,7 +51,7 @@ type OrderResponse struct {
 	Points        *float64  `json:"points,omitempty"`
 	Accrual       float64   `json:"accrual"`              //,omitempty
 	Withdrawal    float64   `json:"withdrawal,omitempty"` //
-	CratedAt      time.Time `json:"crated_at"`
+	CreatedAt     time.Time `json:"uploaded_at"`          // created_at
 	SumToWithdraw float64   `json:"sum,omitempty"`
 }
 
@@ -71,9 +71,9 @@ type PointsResponse struct {
 
 func NewOrderResponse(order model.Order) OrderResponse {
 	res := OrderResponse{
-		Number:   order.Number,
-		Status:   order.Status,
-		CratedAt: order.CratedAt, // Формат даты — RFC3339
+		Number:    order.Number,
+		Status:    order.Status,
+		CreatedAt: order.CreatedAt, // Формат даты — RFC3339
 	}
 
 	if order.Points > 0 {
@@ -378,7 +378,7 @@ func NewTransactionWResponse(transaction model.TransactionW) TransactionWRespons
 	return TransactionWResponse{
 		OrderNumber: transaction.OrderNumber,
 		Points:      transaction.Points,
-		CratedAt:    transaction.CratedAt, // Формат даты — RFC3339
+		CreatedAt:   transaction.CreatedAt, // Формат даты — RFC3339
 	}
 }
 func NewTransactionWListResponse(transactions []model.TransactionW) []TransactionWResponse {
