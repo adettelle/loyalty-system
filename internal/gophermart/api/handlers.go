@@ -194,6 +194,8 @@ func (s *DBStorage) AddOrder(w http.ResponseWriter, r *http.Request) {
 
 // Хендлер доступен только авторизованному пользователю
 func (s *DBStorage) GetOrders(w http.ResponseWriter, r *http.Request) {
+	log.Println("-----------------------------")
+	log.Println("in GetOrders")
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodGet {
@@ -201,11 +203,13 @@ func (s *DBStorage) GetOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userLogin := r.Header.Get("x-user")
+	log.Println("userLogin:", userLogin)
 	if userLogin == "" {
 		w.WriteHeader(http.StatusUnauthorized) // пользователь не авторизован
 		return
 	}
 	customer, err := model.GetCustomerByLogin(userLogin, s.DB, s.Ctx)
+	log.Println("customer:", customer)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError) // ошибка с БД
