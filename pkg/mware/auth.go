@@ -22,7 +22,7 @@ func AuthMwr(h http.HandlerFunc, secret []byte) http.HandlerFunc {
 		// проверяем доступы
 		if authHeaderValue != "" {
 			bearerToken := strings.Split(authHeaderValue, " ")
-			log.Println("bearerToken:", bearerToken[1])
+			//log.Println("bearerToken:", bearerToken[1])
 			if len(bearerToken) == 2 {
 				login, ok := security.VerifyToken(secret, bearerToken[1])
 				if !ok {

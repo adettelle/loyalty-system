@@ -169,6 +169,7 @@ func (s *DBStorage) AddOrder(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.WriteHeader(http.StatusAccepted) // новый номер заказа принят в обработку
+		return
 	} else {
 		idUser, err := model.GetUserByOrder(numOrder, s.DB, s.Ctx)
 		if err != nil {
@@ -193,14 +194,16 @@ func (s *DBStorage) AddOrder(w http.ResponseWriter, r *http.Request) {
 
 // Хендлер доступен только авторизованному пользователю
 func (s *DBStorage) GetOrders(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
 	userLogin := r.Header.Get("x-user")
 	if userLogin == "" {
 		w.WriteHeader(http.StatusUnauthorized) // пользователь не авторизован
+		return
 	}
 	customer, err := model.GetCustomerByLogin(userLogin, s.DB, s.Ctx)
 	if err != nil {
