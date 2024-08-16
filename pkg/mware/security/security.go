@@ -54,7 +54,7 @@ func VerifyToken(secret []byte, token string) (string, bool) {
 		return secret, nil
 	})
 
-	log.Println("jwtToken:", jwtToken)
+	//log.Println("jwtToken:", jwtToken)
 
 	if err != nil {
 		log.Printf("Failed to parse token: %s\n", err)
