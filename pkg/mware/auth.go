@@ -1,7 +1,6 @@
 package mware
 
 import (
-	"log"
 	"net/http"
 	"strings"
 
@@ -13,7 +12,7 @@ func AuthMwr(h http.HandlerFunc, secret []byte) http.HandlerFunc {
 	authFn := func(w http.ResponseWriter, r *http.Request) {
 		// получаем http header вида 'Bearer {jwt}'
 		authHeaderValue := r.Header.Get("Authorization")
-		log.Println("authHeaderValue:", authHeaderValue)
+		// log.Println("authHeaderValue:", authHeaderValue)
 		if authHeaderValue == "" {
 			w.WriteHeader(http.StatusUnauthorized) // пользователь не аутентифицирован
 			return
@@ -22,7 +21,7 @@ func AuthMwr(h http.HandlerFunc, secret []byte) http.HandlerFunc {
 		// проверяем доступы
 		//if authHeaderValue != "" {
 		bearerToken := strings.Split(authHeaderValue, " ")
-		log.Println("bearerToken:", bearerToken, len(bearerToken))
+		// log.Println("bearerToken:", bearerToken, len(bearerToken))
 		if len(bearerToken) != 2 || bearerToken[0] != "Bearer" {
 			w.WriteHeader(http.StatusUnauthorized) // пользователь не аутентифицирован
 			return

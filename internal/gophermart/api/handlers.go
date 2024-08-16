@@ -209,39 +209,46 @@ func (s *DBStorage) GetOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	customer, err := model.GetCustomerByLogin(userLogin, s.DB, s.Ctx)
-	log.Println("customer:", customer)
+	log.Println("customer:", *customer)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError) // ошибка с БД
 		return
 	}
 	if customer == nil {
+		log.Println("customer == nil")
 		w.WriteHeader(http.StatusNotFound) // это значит, нет такого пользователя
 		return
 	}
 
 	orders, err := model.GetOrdersByUser(customer.ID, s.DB, s.Ctx)
 	if err != nil {
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
+	log.Println("orders:", orders)
 	if len(orders) == 0 {
+		log.Println("len(orders) == 0")
 		w.WriteHeader(http.StatusNoContent) // 204 — нет данных для ответа
 		return
 	}
-
+	x := NewOrderListResponse(orders)
+	log.Println(x)
 	resp, err := json.Marshal(NewOrderListResponse(orders)) // NewOrderListResponse(orders)
 	if err != nil {
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	_, err = w.Write(resp)
 	if err != nil {
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	log.Println("OK")
 	//w.WriteHeader(http.StatusOK)
 }
 
