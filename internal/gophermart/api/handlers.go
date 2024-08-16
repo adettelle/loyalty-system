@@ -46,7 +46,7 @@ type TransactionWResponse struct {
 }
 
 type OrderResponse struct {
-	Number        string    `json:"order"`
+	Number        string    `json:"number"`
 	Status        string    `json:"status"`
 	Points        *float64  `json:"points,omitempty"`
 	Accrual       float64   `json:"accrual"`              //,omitempty
