@@ -49,8 +49,8 @@ type OrderResponse struct {
 	Number        string    `json:"order"`
 	Status        string    `json:"status"`
 	Points        *float64  `json:"points,omitempty"`
-	Accrual       float64   `json:"accrual,omitempty"`
-	Withdrawal    float64   `json:"withdrawal,omitempty"`
+	Accrual       float64   `json:"accrual"`              //,omitempty
+	Withdrawal    float64   `json:"withdrawal,omitempty"` //
 	CratedAt      time.Time `json:"crated_at"`
 	SumToWithdraw float64   `json:"sum,omitempty"`
 }
