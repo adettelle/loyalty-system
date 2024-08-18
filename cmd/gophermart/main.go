@@ -50,30 +50,32 @@ func main() {
 
 	r := api.NewRouter(storage)
 
-	ticker := time.NewTicker(time.Second * 2)
+	go func() {
+		ticker := time.NewTicker(time.Second * 2)
 
-	for range ticker.C {
-		ordersWithNewStatus, err := model.GetAllNewOrders(db, context.Background())
-		log.Println("Orders with new ststus:", ordersWithNewStatus)
-		if err != nil {
-			log.Println("err1:", err) // ??????????????????????
-			continue
-		}
-		for _, ord := range ordersWithNewStatus {
-			orderFromAccrual, err := GetOrderFromAccrualSystem(ord.Number, config.AccrualSystemAddress)
+		for range ticker.C {
+			ordersWithNewStatus, err := model.GetAllNewOrders(db, context.Background())
+			log.Println("Orders with new ststus:", ordersWithNewStatus)
 			if err != nil {
-				log.Println("err2:", err) // ????????????????????
+				log.Println("err1:", err) // ??????????????????????
 				continue
 			}
-			log.Println("Orders from accrual system:", orderFromAccrual)
+			for _, ord := range ordersWithNewStatus {
+				orderFromAccrual, err := GetOrderFromAccrualSystem(ord.Number, config.AccrualSystemAddress)
+				if err != nil {
+					log.Println("err2:", err) // ????????????????????
+					continue
+				}
+				log.Println("Orders from accrual system:", orderFromAccrual)
 
-			err = model.UpdateOrderStatus(orderFromAccrual.Status, ord.Number, db, context.Background())
-			if err != nil {
-				log.Println("err3:", err) // ????????????????????
-				continue
+				err = model.UpdateOrderStatus(orderFromAccrual.Status, ord.Number, db, context.Background())
+				if err != nil {
+					log.Println("err3:", err) // ????????????????????
+					continue
+				}
 			}
 		}
-	}
+	}()
 	// order, err := GetOrderFromAccrualSystem("12345678903")
 	// if err != nil {
 	// 	log.Println(err)
