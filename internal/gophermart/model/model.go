@@ -271,7 +271,7 @@ func WithdrawalsByUser(userID int, db *sql.DB, ctx context.Context) ([]Transacti
 	for rows.Next() {
 		var tr TransactionW
 		err := rows.Scan(&tr.OrderNumber, &tr.Points, &tr.CreatedAt)
-		if err != nil {
+		if err != nil || rows.Err() != nil {
 			return nil, err
 		}
 
@@ -350,7 +350,7 @@ func GetAllNewOrders(db *sql.DB, ctx context.Context) ([]Order, error) {
 	sqlSt := `select id, "number", status from "order" where status = 'new';`
 
 	rows, err := db.QueryContext(ctx, sqlSt)
-	if err != nil {
+	if err != nil || rows.Err() != nil {
 		return nil, err
 	}
 	defer rows.Close()
