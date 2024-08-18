@@ -72,7 +72,7 @@ type PointsResponse struct {
 func NewOrderResponse(order model.Order) OrderResponse {
 	res := OrderResponse{
 		Number:    order.Number,
-		Status:    "PROCESSED",     //order.Status,
+		Status:    "PROCESSED",     //order.Status, TODO!!!!!!!!!!!!!!!!!!!!!!!!!
 		CreatedAt: order.CreatedAt, // Формат даты — RFC3339
 	}
 
@@ -158,7 +158,7 @@ func (s *DBStorage) AddOrder(w http.ResponseWriter, r *http.Request) {
 	}
 	if !orderExists {
 		log.Println("Writing to DB")
-
+		// TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		sqlStatement := `insert into "order" (customer_id, number, status)
 			values ((select id from customer where login = $1), $2, $3);`
 

@@ -343,3 +343,37 @@ func AddUser(login string, password string, db *sql.DB, ctx context.Context) err
 	log.Println("Registered")
 	return nil
 }
+
+func GetAllNewOrders(db *sql.DB, ctx context.Context) ([]Order, error) {
+	orders := make([]Order, 0)
+
+	sqlSt := `select id, "number", status from "order" where status = 'new';`
+
+	rows, err := db.QueryContext(ctx, sqlSt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var ord Order
+		err := rows.Scan(&ord.ID, &ord.Number, &ord.Status)
+		if err != nil {
+			return nil, err
+		}
+		orders = append(orders, ord)
+	}
+	return orders, nil
+}
+
+func UpdateOrderStatus(status string, number string, db *sql.DB, ctx context.Context) error {
+	sqlSt := `update "order" set status = $1 where "number" = $2;`
+
+	_, err := db.ExecContext(ctx, sqlSt, status, number)
+
+	if err != nil {
+		return err
+	}
+	log.Println("Status updated")
+	return nil
+}
