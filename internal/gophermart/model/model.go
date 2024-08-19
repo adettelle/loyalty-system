@@ -231,15 +231,34 @@ func GetWithdrawalPoints(userID int, db *sql.DB, ctx context.Context) (float64, 
 	return pointsWithdrawal, nil
 }
 
-// как передать пользователя???????????????
 // Withdraw списывает баллы sum с номера счета order у зарегистрированного пользователя
 func Withdraw(order string, sum float64, userID int, db *sql.DB, ctx context.Context) error {
-	sqlSt := `update loyalty_system ls
-		set points = points - $1 
-		where customer_id = $2 and transacton = 'accrual';`
+	// sqlSt := `update loyalty_system ls
+	// 	set points = points - $1
+	// 	where customer_id = $2 and transacton = $3;`
+	sqlNewOrder := `insert into "order" (customer_id, "number", status)
+		values ($1, $2, $3) returning id;`
 
-	_, err := db.ExecContext(ctx, sqlSt, sum, userID)
+	row := db.QueryRowContext(ctx, sqlNewOrder, userID, order, StatusNew) // ExecContext
+	// if err != nil {
+	// 	log.Printf("error %v in inserting new order %s by withdrawal %f", err, order, sum)
+	// 	return err
+	// }
+
+	var orderID int
+
+	err := row.Scan(&orderID)
 	if err != nil {
+		log.Printf("error %v in inserting new order %s by withdrawal %f", err, order, sum)
+		return err
+	}
+
+	sqlSt := `insert into loyalty_system (customer_id, order_id, points, transacton)
+		values ($1, $2, $3, $4);`
+
+	_, err = db.ExecContext(ctx, sqlSt, userID, orderID, sum, TransactionWithdrawal)
+	if err != nil {
+		log.Printf("error %v in inserting new withdrawal %f", err, sum)
 		return err
 	}
 
