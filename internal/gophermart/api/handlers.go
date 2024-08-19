@@ -276,14 +276,14 @@ func (s *DBStorage) GetBalance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pointsAccrual, err := model.GetAccrualPoints(customer.ID, s.DB, s.Ctx)
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	pointsWithdrawal, err := model.GetWithdrawalPoints(customer.ID, s.DB, s.Ctx)
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return

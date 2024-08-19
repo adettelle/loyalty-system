@@ -196,11 +196,8 @@ func GetOrdersByUser(userID int, db *sql.DB, ctx context.Context) ([]Order, erro
 
 // GetAccrualPoints показывает количество набранных баллов пользователя
 func GetAccrualPoints(userID int, db *sql.DB, ctx context.Context) (float64, error) {
-	// userID := 1
-	sqlSt := `select ls.points from loyalty_system ls 
-		join customer c 
-		on c.id = ls.customer_id 
-		where c.id = $1 and ls.transacton = $2;` // 'accrual'
+	sqlSt := `select coalesce (sum(points), 0) from loyalty_system 
+		where customer_id = $1 and transacton = $2;` // 'accrual'
 
 	row := db.QueryRowContext(ctx, sqlSt, userID, TransactionAccrual)
 
@@ -208,7 +205,8 @@ func GetAccrualPoints(userID int, db *sql.DB, ctx context.Context) (float64, err
 
 	err := row.Scan(&pointsAccrual)
 	if err != nil {
-		log.Printf("Error in getting balance of user %d", userID)
+		log.Printf("Error %v in getting balance of user %d", err, userID)
+
 		return 0, err
 	}
 
@@ -217,10 +215,8 @@ func GetAccrualPoints(userID int, db *sql.DB, ctx context.Context) (float64, err
 
 // GetWithdrawalPoints показывает количество потраченных баллов пользователя
 func GetWithdrawalPoints(userID int, db *sql.DB, ctx context.Context) (float64, error) {
-	sqlSt := `select ls.points from loyalty_system ls 
-		join customer c 
-		on c.id = ls.customer_id 
-		where c.id = $1 and ls.transacton = $2;` // 'withdrawal'
+	sqlSt := `select coalesce (sum(points), 0) from loyalty_system
+		where customer_id = $1 and transacton = $2;` // 'withdrawal'
 
 	row := db.QueryRowContext(ctx, sqlSt, userID, TransactionWithdrawal)
 
@@ -375,5 +371,19 @@ func UpdateOrderStatus(status string, number string, db *sql.DB, ctx context.Con
 		return err
 	}
 	log.Println("Status updated")
+	return nil
+}
+
+func UpdateAccrualPoints(accrual float64, number string, db *sql.DB, ctx context.Context) error {
+	sqlSt := `insert into loyalty_system (customer_id, order_id, points, transacton)
+		values ((select customer_id from "order" where "number" = $1), 
+		(select id from "order" where "number" = $1), $2, $3);
+`
+
+	_, err := db.ExecContext(ctx, sqlSt, number, accrual, TransactionAccrual)
+	if err != nil {
+		return err
+	}
+	log.Println("Points have been accrued")
 	return nil
 }

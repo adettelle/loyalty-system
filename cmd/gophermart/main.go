@@ -22,6 +22,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Println(config)
 
 	if config.DBUri != "" {
 		uri = config.DBUri
@@ -73,15 +74,15 @@ func main() {
 					log.Println("err3:", err) // ????????????????????
 					continue
 				}
+
+				err = model.UpdateAccrualPoints(orderFromAccrual.Accrual, ord.Number, db, context.Background())
+				if err != nil {
+					log.Println("err4:", err) // ????????????????????
+					continue
+				}
 			}
 		}
 	}()
-	// order, err := GetOrderFromAccrualSystem("12345678903")
-	// if err != nil {
-	// 	log.Println(err)
-	// 	// ????????????????????
-	// }
-	// log.Println(order)
 
 	err = http.ListenAndServe(address, r)
 	if err != nil {
@@ -120,8 +121,6 @@ func GetOrderFromAccrualSystem(number string, url string) (OrderStatsResp, error
 	}
 
 	var buf bytes.Buffer
-
-	// io.Copy(os.Stdout, resp.Body) // вывод ответа в консоль
 
 	_, err = buf.ReadFrom(resp.Body)
 	if err != nil {
