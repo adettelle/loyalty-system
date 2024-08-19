@@ -290,7 +290,7 @@ func (s *DBStorage) GetBalance(w http.ResponseWriter, r *http.Request) {
 	}
 
 	points := PointsResponse{
-		Current:   pointsAccrual,
+		Current:   pointsAccrual - pointsWithdrawal,
 		Withdrawn: pointsWithdrawal,
 	}
 
