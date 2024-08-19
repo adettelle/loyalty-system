@@ -72,7 +72,7 @@ type PointsResponse struct {
 func NewOrderResponse(order model.Order) OrderResponse {
 	res := OrderResponse{
 		Number:    order.Number,
-		Status:    "PROCESSED",     //order.Status, TODO!!!!!!!!!!!!!!!!!!!!!!!!!
+		Status:    order.Status,    // "PROCESSED",
 		CreatedAt: order.CreatedAt, // Формат даты — RFC3339
 	}
 

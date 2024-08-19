@@ -56,7 +56,7 @@ func main() {
 
 		for range ticker.C {
 			ordersWithNewStatus, err := model.GetAllNewOrders(db, context.Background())
-			log.Println("Orders with new ststus:", ordersWithNewStatus)
+			log.Println("Orders with new status:", ordersWithNewStatus)
 			if err != nil {
 				log.Println("err1:", err) // ??????????????????????
 				continue

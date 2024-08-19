@@ -12,10 +12,10 @@ import (
 )
 
 const (
-	StatusNew             = "new"
-	StatusProcessing      = "processing"
-	StatusInvalid         = "invalid"
-	StatusProcessed       = "processed"
+	StatusNew             = "NEW"
+	StatusProcessing      = "PROCESSING"
+	StatusInvalid         = "INVALID"
+	StatusProcessed       = "PROCESSED"
 	TransactionAccrual    = `accrual`
 	TransactionWithdrawal = `withdrawal`
 	RewardTypePercent     = `percent`
