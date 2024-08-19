@@ -46,13 +46,13 @@ type TransactionWResponse struct {
 }
 
 type OrderResponse struct {
-	Number        string    `json:"number"`
-	Status        string    `json:"status"`
-	Points        *float64  `json:"points,omitempty"`
-	Accrual       float64   `json:"accrual"`              //,omitempty
-	Withdrawal    float64   `json:"withdrawal,omitempty"` //
-	CreatedAt     time.Time `json:"uploaded_at"`          // created_at
-	SumToWithdraw float64   `json:"sum,omitempty"`
+	Number     string    `json:"number"`
+	Status     string    `json:"status"`
+	Points     *float64  `json:"points,omitempty"`
+	Accrual    float64   `json:"accrual"`              //,omitempty
+	Withdrawal float64   `json:"withdrawal,omitempty"` //
+	CreatedAt  time.Time `json:"uploaded_at"`          // created_at
+	// SumToWithdraw float64   `json:"sum,omitempty"`
 }
 
 type Customer struct {
@@ -310,10 +310,10 @@ func (s *DBStorage) GetBalance(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// type OrderResponse struct {
-// 	OrderNumber string `json:"order"`
-// 	Sum         int    `json:"sum"`
-// }
+type WithdrawReq struct {
+	OrderNumber string  `json:"order"`
+	Sum         float64 `json:"sum"`
+}
 
 // Хендлер доступен только авторизованному пользователю
 func (s *DBStorage) PostWithdraw(w http.ResponseWriter, r *http.Request) {
@@ -338,7 +338,7 @@ func (s *DBStorage) PostWithdraw(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var buf bytes.Buffer
-	var orderResp OrderResponse
+	var wreq WithdrawReq
 
 	// читаем тело запроса
 	_, err = buf.ReadFrom(r.Body)
@@ -347,16 +347,16 @@ func (s *DBStorage) PostWithdraw(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := json.Unmarshal(buf.Bytes(), &orderResp); err != nil {
+	if err := json.Unmarshal(buf.Bytes(), &wreq); err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	fmt.Println(orderResp.Number)
-	fmt.Println(orderResp.SumToWithdraw)
+	fmt.Println(wreq.OrderNumber)
+	fmt.Println(wreq.Sum)
 
-	if !luhn.CheckLuhn(orderResp.Number) {
+	if !luhn.CheckLuhn(wreq.OrderNumber) {
 		w.WriteHeader(http.StatusUnprocessableEntity) // неверный номер заказа
 		return
 	}
@@ -368,14 +368,14 @@ func (s *DBStorage) PostWithdraw(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	log.Println("sumInAccount:", sumInAccount)
-	log.Println("orderResp.Sum:", orderResp.SumToWithdraw)
+	log.Println("wreq.Sum:", wreq.Sum)
 
-	if sumInAccount < orderResp.SumToWithdraw {
+	if sumInAccount < wreq.Sum {
 		w.WriteHeader(http.StatusPaymentRequired) // на счету недостаточно средств
 		return
 	}
 
-	err = model.Withdraw(orderResp.Number, orderResp.SumToWithdraw, s.DB, s.Ctx)
+	err = model.Withdraw(wreq.OrderNumber, wreq.Sum, s.DB, s.Ctx)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError) // внутренняя ошибка сервера
