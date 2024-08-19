@@ -343,7 +343,7 @@ func AddUser(login string, password string, db *sql.DB, ctx context.Context) err
 func GetAllNewOrders(db *sql.DB, ctx context.Context) ([]Order, error) {
 	orders := make([]Order, 0)
 
-	sqlSt := `select id, "number", status from "order" where status = 'new';`
+	sqlSt := `select id, "number", status from "order" where status = 'NEW';`
 
 	rows, err := db.QueryContext(ctx, sqlSt)
 	if err != nil || rows.Err() != nil {
