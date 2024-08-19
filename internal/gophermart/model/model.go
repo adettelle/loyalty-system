@@ -233,8 +233,7 @@ func GetWithdrawalPoints(userID int, db *sql.DB, ctx context.Context) (float64, 
 
 // как передать пользователя???????????????
 // Withdraw списывает баллы sum с номера счета order у зарегистрированного пользователя
-func Withdraw(order string, sum float64, db *sql.DB, ctx context.Context) error {
-	userID := 1
+func Withdraw(order string, sum float64, userID int, db *sql.DB, ctx context.Context) error {
 	sqlSt := `update loyalty_system ls
 		set points = points - $1 
 		where customer_id = $2 and transacton = 'accrual';`

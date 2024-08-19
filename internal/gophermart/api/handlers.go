@@ -343,7 +343,7 @@ func (s *DBStorage) PostWithdraw(w http.ResponseWriter, r *http.Request) {
 	// читаем тело запроса
 	_, err = buf.ReadFrom(r.Body)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest) // неверный формат запроса
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
@@ -375,7 +375,7 @@ func (s *DBStorage) PostWithdraw(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = model.Withdraw(wreq.OrderNumber, wreq.Sum, s.DB, s.Ctx)
+	err = model.Withdraw(wreq.OrderNumber, wreq.Sum, customer.ID, s.DB, s.Ctx)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError) // внутренняя ошибка сервера
