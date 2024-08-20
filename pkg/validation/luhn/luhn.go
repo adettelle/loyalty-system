@@ -25,6 +25,21 @@ func CheckLuhn(input string) bool {
 				resStr = append(resStr, num)
 			}
 		}
+	} else { // иначе (когда количество цифр нечётное) начинаем со первой цифры (идекс 0)
+		for i, val := range input {
+			num, _ := strconv.Atoi(string(val))
+			if i%2 != 0 {
+				x := num * 2
+				if x > 9 {
+					x = x - 9
+					resStr = append(resStr, x)
+				} else {
+					resStr = append(resStr, x)
+				}
+			} else {
+				resStr = append(resStr, num)
+			}
+		}
 	}
 
 	var res int
