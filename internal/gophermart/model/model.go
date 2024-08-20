@@ -97,23 +97,23 @@ func (gs *GophermartStorage) OrderExists(numOrder string) (bool, error) {
 // 0, false, nil - такого номера заказа ни у кого нет
 // id, false, err - такой номера заказа уже есть у другого пользователя
 // id, true, err - такой номера заказа есть у проверяемого пользователя
-func (gs *GophermartStorage) UserHasOrder(numOrder string, userID int) (int, bool, error) {
-	// если 0, err=nil - это значит, что юзера с таким заказом нет
-	customer, err := gs.GetUserByOrder(numOrder)
-	if err != nil || err == sql.ErrNoRows { // такого номера заказа ни у кого нет
-		log.Printf("There is no user with order number %s", numOrder)
-		return customer.ID, false, nil // userIDByGet было
-	}
-	// if userIdByGet == 0 { // такого номера заказа у пользователя нет
-	// 	log.Printf("There is no user with order number %s", numOrder)
-	// 	return userIdByGet, false, err
-	// }
-	if customer.ID != userID { // такой номера заказа уже есть у другого пользователя // userIDByGet было
-		log.Printf("There is a user %d with order number %s", customer.ID, numOrder)
-		return customer.ID, false, err // userIDByGet было
-	}
-	return customer.ID, true, err // такой номера заказа есть у проверяемого пользователя // userIDByGet было
-}
+// func (gs *GophermartStorage) UserHasOrder(numOrder string, userID int) (int, bool, error) {
+// 	// если 0, err=nil - это значит, что юзера с таким заказом нет
+// 	customer, err := gs.GetUserByOrder(numOrder)
+// 	if err != nil || err == sql.ErrNoRows { // такого номера заказа ни у кого нет
+// 		log.Printf("There is no user with order number %s", numOrder)
+// 		return customer.ID, false, nil // userIDByGet было
+// 	}
+// 	// if userIdByGet == 0 { // такого номера заказа у пользователя нет
+// 	// 	log.Printf("There is no user with order number %s", numOrder)
+// 	// 	return userIdByGet, false, err
+// 	// }
+// 	if customer.ID != userID { // такой номера заказа уже есть у другого пользователя // userIDByGet было
+// 		log.Printf("There is a user %d with order number %s", customer.ID, numOrder)
+// 		return customer.ID, false, err // userIDByGet было
+// 	}
+// 	return customer.ID, true, err // такой номера заказа есть у проверяемого пользователя // userIDByGet было
+// }
 
 func (gs *GophermartStorage) GetOrdersByUser(userID int) ([]Order, error) {
 	orders := make([]Order, 0)

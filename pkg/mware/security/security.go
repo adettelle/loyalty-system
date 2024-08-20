@@ -26,7 +26,7 @@ func VerifyUser(login string, pass string, gmStorage *model.GophermartStorage) b
 	}
 
 	log.Println(cust.Password)
-	return cust.Password == hashStringPassword
+	return cust.Password == pass
 }
 
 // VerifyToken — функция, которая выполняет аутентификацию и авторизацию пользователя.
