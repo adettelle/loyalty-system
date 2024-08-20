@@ -10,6 +10,7 @@ import (
 	"github.com/adettelle/loyalty-system/internal/gophermart/api"
 	"github.com/adettelle/loyalty-system/internal/gophermart/config"
 	"github.com/adettelle/loyalty-system/internal/gophermart/database"
+	"github.com/adettelle/loyalty-system/internal/gophermart/model"
 )
 
 func main() {
@@ -36,9 +37,10 @@ func main() {
 
 	defer db.Close()
 
-	storage := &api.DBStorage{
-		DB:        db,
-		Ctx:       context.Background(),
+	gmStorage := model.NewGophermartStorage(db, context.Background())
+
+	storage := &api.GophermartHandlers{
+		GmStorage: gmStorage,
 		SecretKey: []byte(config.Key),
 	}
 
@@ -47,7 +49,7 @@ func main() {
 
 	r := api.NewRouter(storage)
 
-	accrualSystem := accrualservice.NewAccrualSystem(db, config.AccrualSystemAddress)
+	accrualSystem := accrualservice.NewAccrualSystem(gmStorage, config.AccrualSystemAddress)
 
 	accrualSystem.AccrualLoop()
 

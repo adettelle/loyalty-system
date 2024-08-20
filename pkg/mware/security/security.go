@@ -1,41 +1,32 @@
 package security
 
 import (
-	"context"
 	"crypto/sha256"
-	"database/sql"
 	"encoding/hex"
 	"log"
 
+	"github.com/adettelle/loyalty-system/internal/gophermart/model"
 	"github.com/golang-jwt/jwt/v5"
 )
-
-type UserPassword struct {
-	login string
-	pwd   string
-}
 
 // VerifyUser — функция, которая выполняет аутентификацию и авторизацию пользователя
 // user — логин пользователя, pass — пароль, permission — необходимая привилегия.
 // если пользователь ввел правильные данные, и у него есть необходимая привилегия — возвращаем true, иначе — false
-func VerifyUser(login string, pass string, db *sql.DB, ctx context.Context) bool {
+func VerifyUser(login string, pass string, gmStorage *model.GophermartStorage) bool {
 	// получаем хеш пароля
 	hashedPassword := sha256.Sum256([]byte(pass))
 	hashStringPassword := hex.EncodeToString(hashedPassword[:])
 	log.Println(hashStringPassword)
 
 	// проверяем введенные данные
-	sqlSt := `select login, password from customer where login = $1;`
-	row := db.QueryRowContext(ctx, sqlSt, login)
-
-	var sqlStPassword UserPassword
-
-	err := row.Scan(&sqlStPassword.login, &sqlStPassword.pwd)
+	cust, err := gmStorage.GetCustomerByLogin(login)
 	if err != nil {
-		log.Printf("Error in authorization %s", login)
+		log.Printf("Error in authorization %s", cust.Login)
 		return false
 	}
-	return true
+
+	log.Println(cust.Password)
+	return cust.Password == hashStringPassword
 }
 
 // VerifyToken — функция, которая выполняет аутентификацию и авторизацию пользователя.

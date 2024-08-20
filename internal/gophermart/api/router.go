@@ -5,7 +5,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func NewRouter(storage *DBStorage) chi.Router {
+func NewRouter(storage *GophermartHandlers) chi.Router {
 	r := chi.NewRouter()
 
 	// конфигурирование сервера

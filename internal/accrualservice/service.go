@@ -2,8 +2,6 @@ package accrualservice
 
 import (
 	"bytes"
-	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -14,8 +12,9 @@ import (
 )
 
 type AccrualSystem struct {
-	DB  *sql.DB
-	URI string
+	// DB  *sql.DB
+	URI       string
+	GmStorage *model.GophermartStorage
 }
 
 type OrderStatsResp struct {
@@ -24,10 +23,10 @@ type OrderStatsResp struct {
 	Accrual float64 `json:"accrual,omitempty"`
 }
 
-func NewAccrualSystem(db *sql.DB, uri string) *AccrualSystem {
+func NewAccrualSystem(gmStorage *model.GophermartStorage, uri string) *AccrualSystem {
 	return &AccrualSystem{
-		DB:  db,
-		URI: uri,
+		URI:       uri,
+		GmStorage: gmStorage,
 	}
 }
 
@@ -79,7 +78,7 @@ func (as *AccrualSystem) AccrualLoop() {
 		ticker := time.NewTicker(time.Second * 2)
 
 		for range ticker.C {
-			ordersWithProcessingStatus, err := model.GetAllProcessingOrders(as.DB, context.Background())
+			ordersWithProcessingStatus, err := as.GmStorage.GetAllProcessingOrders()
 			log.Println("Orders with new status:", ordersWithProcessingStatus)
 			if err != nil {
 				log.Println("error in getting orders with status 'processing':", err)
@@ -93,13 +92,13 @@ func (as *AccrualSystem) AccrualLoop() {
 				}
 				log.Println("Orders from accrual system:", orderFromAccrual)
 
-				err = model.UpdateOrderStatus(orderFromAccrual.Status, ord.Number, as.DB, context.Background())
+				err = as.GmStorage.UpdateOrderStatus(orderFromAccrual.Status, ord.Number)
 				if err != nil {
 					log.Println("error in updating status of orders:", err)
 					continue
 				}
 
-				err = model.UpdateAccrualPoints(orderFromAccrual.Accrual, ord.Number, as.DB, context.Background())
+				err = as.GmStorage.UpdateAccrualPoints(orderFromAccrual.Accrual, ord.Number)
 				if err != nil {
 					log.Println("error in updating points of orders:", err)
 					continue

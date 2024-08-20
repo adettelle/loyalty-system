@@ -44,22 +44,34 @@ type TransactionW struct {
 	CreatedAt   time.Time
 }
 
+type GophermartStorage struct {
+	Ctx context.Context
+	DB  *sql.DB
+}
+
+func NewGophermartStorage(db *sql.DB, ctx context.Context) *GophermartStorage {
+	return &GophermartStorage{
+		Ctx: ctx,
+		DB:  db,
+	}
+}
+
 // GetUserByOrder возвращает юзера и ошибку
-func GetUserByOrder(numOrder string, db *sql.DB, ctx context.Context) (Customer, error) {
+func (gs *GophermartStorage) GetUserByOrder(numOrder string) (*Customer, error) {
 	sqlSt := `select c.id, c.login, c."password" from "order" ord
 		inner join customer c on c.id = ord.customer_id 
 		where "number" = $1;`
-	row := db.QueryRowContext(ctx, sqlSt, numOrder)
+	row := gs.DB.QueryRowContext(gs.Ctx, sqlSt, numOrder)
 
 	var customer Customer
 	err := row.Scan(&customer.ID, &customer.Login, &customer.Password)
 
-	return customer, err
+	return &customer, err
 }
 
-func GetLoginByID(id int, db *sql.DB, ctx context.Context) (string, error) {
+func (gs *GophermartStorage) GetLoginByID(id int) (string, error) {
 	sqlSt := `select login from customer where id = $1;`
-	row := db.QueryRowContext(ctx, sqlSt, id)
+	row := gs.DB.QueryRowContext(gs.Ctx, sqlSt, id)
 
 	var login string
 	err := row.Scan(&login)
@@ -67,9 +79,9 @@ func GetLoginByID(id int, db *sql.DB, ctx context.Context) (string, error) {
 	return login, err
 }
 
-func OrderExists(numOrder string, db *sql.DB, ctx context.Context) (bool, error) {
+func (gs *GophermartStorage) OrderExists(numOrder string) (bool, error) {
 	sqlSt := `select count(id) > 0 as order_exists from "order" where "number" = $1;`
-	row := db.QueryRowContext(ctx, sqlSt, numOrder)
+	row := gs.DB.QueryRowContext(gs.Ctx, sqlSt, numOrder)
 
 	var ordExists bool
 
@@ -85,9 +97,9 @@ func OrderExists(numOrder string, db *sql.DB, ctx context.Context) (bool, error)
 // 0, false, nil - такого номера заказа ни у кого нет
 // id, false, err - такой номера заказа уже есть у другого пользователя
 // id, true, err - такой номера заказа есть у проверяемого пользователя
-func UserHasOrder(numOrder string, userID int, db *sql.DB, ctx context.Context) (int, bool, error) {
+func (gs *GophermartStorage) UserHasOrder(numOrder string, userID int) (int, bool, error) {
 	// если 0, err=nil - это значит, что юзера с таким заказом нет
-	customer, err := GetUserByOrder(numOrder, db, ctx)
+	customer, err := gs.GetUserByOrder(numOrder)
 	if err != nil || err == sql.ErrNoRows { // такого номера заказа ни у кого нет
 		log.Printf("There is no user with order number %s", numOrder)
 		return customer.ID, false, nil // userIDByGet было
@@ -103,7 +115,7 @@ func UserHasOrder(numOrder string, userID int, db *sql.DB, ctx context.Context) 
 	return customer.ID, true, err // такой номера заказа есть у проверяемого пользователя // userIDByGet было
 }
 
-func GetOrdersByUser(userID int, db *sql.DB, ctx context.Context) ([]Order, error) {
+func (gs *GophermartStorage) GetOrdersByUser(userID int) ([]Order, error) {
 	orders := make([]Order, 0)
 
 	sqlSt := `select ord.id, "number", status, coalesce(ls.points, 0), ls.transacton, ord.created_at 
@@ -113,7 +125,7 @@ func GetOrdersByUser(userID int, db *sql.DB, ctx context.Context) ([]Order, erro
 		where ord.customer_id = $1
 		order by ord.created_at;`
 
-	rows, err := db.QueryContext(ctx, sqlSt, userID)
+	rows, err := gs.DB.QueryContext(gs.Ctx, sqlSt, userID)
 	if err != nil || rows.Err() != nil {
 		log.Println("error: ", err)
 		return nil, err
@@ -135,11 +147,11 @@ func GetOrdersByUser(userID int, db *sql.DB, ctx context.Context) ([]Order, erro
 }
 
 // GetAccrualPoints показывает количество набранных баллов пользователя
-func GetAccrualPoints(userID int, db *sql.DB, ctx context.Context) (float64, error) {
+func (gs *GophermartStorage) GetAccrualPoints(userID int) (float64, error) {
 	sqlSt := `select coalesce (sum(points), 0) from loyalty_system 
 		where customer_id = $1 and transacton = $2;` // 'accrual'
 
-	row := db.QueryRowContext(ctx, sqlSt, userID, TransactionAccrual)
+	row := gs.DB.QueryRowContext(gs.Ctx, sqlSt, userID, TransactionAccrual)
 
 	var pointsAccrual float64
 
@@ -154,11 +166,11 @@ func GetAccrualPoints(userID int, db *sql.DB, ctx context.Context) (float64, err
 }
 
 // GetWithdrawalPoints показывает количество потраченных баллов пользователя
-func GetWithdrawalPoints(userID int, db *sql.DB, ctx context.Context) (float64, error) {
+func (gs *GophermartStorage) GetWithdrawalPoints(userID int) (float64, error) {
 	sqlSt := `select coalesce (sum(points), 0) from loyalty_system
 		where customer_id = $1 and transacton = $2;` // 'withdrawal'
 
-	row := db.QueryRowContext(ctx, sqlSt, userID, TransactionWithdrawal)
+	row := gs.DB.QueryRowContext(gs.Ctx, sqlSt, userID, TransactionWithdrawal)
 
 	var pointsWithdrawal float64
 
@@ -172,11 +184,11 @@ func GetWithdrawalPoints(userID int, db *sql.DB, ctx context.Context) (float64, 
 }
 
 // Withdraw списывает баллы sum с номера счета order у зарегистрированного пользователя
-func Withdraw(order string, sum float64, userID int, db *sql.DB, ctx context.Context) error {
+func (gs *GophermartStorage) Withdraw(order string, sum float64, userID int) error {
 	sqlNewOrder := `insert into "order" (customer_id, "number", status)
 		values ($1, $2, $3) returning id;`
 
-	row := db.QueryRowContext(ctx, sqlNewOrder, userID, order, StatusNew)
+	row := gs.DB.QueryRowContext(gs.Ctx, sqlNewOrder, userID, order, StatusNew)
 
 	var orderID int
 
@@ -189,7 +201,7 @@ func Withdraw(order string, sum float64, userID int, db *sql.DB, ctx context.Con
 	sqlSt := `insert into loyalty_system (customer_id, order_id, points, transacton)
 		values ($1, $2, $3, $4);`
 
-	_, err = db.ExecContext(ctx, sqlSt, userID, orderID, sum, TransactionWithdrawal)
+	_, err = gs.DB.ExecContext(gs.Ctx, sqlSt, userID, orderID, sum, TransactionWithdrawal)
 	if err != nil {
 		log.Printf("error %v in inserting new withdrawal %f", err, sum)
 		return err
@@ -199,7 +211,7 @@ func Withdraw(order string, sum float64, userID int, db *sql.DB, ctx context.Con
 }
 
 // AllWithdrawals показывает все транзакции с выводом средств
-func WithdrawalsByUser(userID int, db *sql.DB, ctx context.Context) ([]TransactionW, error) {
+func (gs *GophermartStorage) WithdrawalsByUser(userID int) ([]TransactionW, error) {
 	transactions := make([]TransactionW, 0)
 	sqlSt := `select ord."number", ls.points, ls.created_at 
 		from loyalty_system ls 
@@ -208,7 +220,7 @@ func WithdrawalsByUser(userID int, db *sql.DB, ctx context.Context) ([]Transacti
 		where ls.transacton = $1 and ls.customer_id = $2
 		order by created_at desc;`
 
-	rows, err := db.QueryContext(ctx, sqlSt, TransactionWithdrawal, userID)
+	rows, err := gs.DB.QueryContext(gs.Ctx, sqlSt, TransactionWithdrawal, userID)
 	if err != nil || rows.Err() != nil {
 		return nil, err
 	}
@@ -227,14 +239,14 @@ func WithdrawalsByUser(userID int, db *sql.DB, ctx context.Context) ([]Transacti
 	return transactions, nil
 }
 
-func GetCustomerByLogin(login string, db *sql.DB, ctx context.Context) (*Customer, error) {
-	sqlSt := `select id from customer where login = $1;`
+func (gs *GophermartStorage) GetCustomerByLogin(login string) (*Customer, error) {
+	sqlSt := `select id, login, password from customer where login = $1;`
 
-	row := db.QueryRowContext(ctx, sqlSt, login)
+	row := gs.DB.QueryRowContext(gs.Ctx, sqlSt, login)
 
 	var customer Customer
 
-	err := row.Scan(&customer.ID)
+	err := row.Scan(&customer.ID, &customer.Login, &customer.Password)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // считаем, что это не ошибка, просто не нашли пользователя
@@ -264,9 +276,9 @@ func IsUserExistsErr(err error) bool {
 }
 
 // регистрация пользователя
-func AddUser(login string, password string, db *sql.DB, ctx context.Context) error {
+func (gs *GophermartStorage) AddUser(login string, password string) error {
 	sqlUser := `select count(*) > 0 from customer where login = $1 limit 1;`
-	row := db.QueryRowContext(ctx, sqlUser, login)
+	row := gs.DB.QueryRowContext(gs.Ctx, sqlUser, login)
 
 	// переменная для чтения результата
 	var userEsists bool
@@ -282,7 +294,7 @@ func AddUser(login string, password string, db *sql.DB, ctx context.Context) err
 
 	sqlSt := `insert into customer (login, "password") values ($1, $2);`
 
-	_, err = db.ExecContext(ctx, sqlSt, login, password)
+	_, err = gs.DB.ExecContext(gs.Ctx, sqlSt, login, password)
 	if err != nil {
 		log.Println("error in registering user:", err)
 		return err
@@ -292,12 +304,12 @@ func AddUser(login string, password string, db *sql.DB, ctx context.Context) err
 }
 
 // GetAllProcessingOrders находит все заказы состатусом new и меняет их статус на processing
-func GetAllProcessingOrders(db *sql.DB, ctx context.Context) ([]Order, error) {
+func (gs *GophermartStorage) GetAllProcessingOrders() ([]Order, error) {
 	orders := make([]Order, 0)
 
 	sqlSt := `update "order" set status = 'PROCESSING' where status = 'NEW' returning id, "number", status;`
 
-	rows, err := db.QueryContext(ctx, sqlSt)
+	rows, err := gs.DB.QueryContext(gs.Ctx, sqlSt)
 	if err != nil || rows.Err() != nil {
 		return nil, err
 	}
@@ -314,10 +326,10 @@ func GetAllProcessingOrders(db *sql.DB, ctx context.Context) ([]Order, error) {
 	return orders, nil
 }
 
-func UpdateOrderStatus(status string, number string, db *sql.DB, ctx context.Context) error {
+func (gs *GophermartStorage) UpdateOrderStatus(status string, number string) error {
 	sqlSt := `update "order" set status = $1 where "number" = $2;`
 
-	_, err := db.ExecContext(ctx, sqlSt, status, number)
+	_, err := gs.DB.ExecContext(gs.Ctx, sqlSt, status, number)
 
 	if err != nil {
 		return err
@@ -326,13 +338,13 @@ func UpdateOrderStatus(status string, number string, db *sql.DB, ctx context.Con
 	return nil
 }
 
-func UpdateAccrualPoints(accrual float64, number string, db *sql.DB, ctx context.Context) error {
+func (gs *GophermartStorage) UpdateAccrualPoints(accrual float64, number string) error {
 	sqlSt := `insert into loyalty_system (customer_id, order_id, points, transacton)
 		values ((select customer_id from "order" where "number" = $1), 
 		(select id from "order" where "number" = $1), $2, $3);
 `
 
-	_, err := db.ExecContext(ctx, sqlSt, number, accrual, TransactionAccrual)
+	_, err := gs.DB.ExecContext(gs.Ctx, sqlSt, number, accrual, TransactionAccrual)
 	if err != nil {
 		return err
 	}
@@ -340,13 +352,13 @@ func UpdateAccrualPoints(accrual float64, number string, db *sql.DB, ctx context
 	return nil
 }
 
-func AddNewOrder(userLogin string, numOrder string, db *sql.DB, ctx context.Context) error {
+func (gs *GophermartStorage) AddNewOrder(userLogin string, numOrder string) error {
 	log.Println("Writing to DB")
 
 	sqlStatement := `insert into "order" (customer_id, number, status)
 			values ((select id from customer where login = $1), $2, $3);`
 
-	_, err := db.ExecContext(ctx, sqlStatement, userLogin, numOrder, StatusNew)
+	_, err := gs.DB.ExecContext(gs.Ctx, sqlStatement, userLogin, numOrder, StatusNew)
 	if err != nil {
 		return err
 	}

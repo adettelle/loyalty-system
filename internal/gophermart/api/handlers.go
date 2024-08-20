@@ -2,7 +2,6 @@ package api
 
 import (
 	"bytes"
-	"context"
 	"database/sql"
 	"encoding/json"
 	"log"
@@ -14,9 +13,10 @@ import (
 	"github.com/adettelle/loyalty-system/pkg/validation/luhn"
 )
 
-type DBStorage struct {
-	Ctx       context.Context
-	DB        *sql.DB
+type GophermartHandlers struct {
+	// Ctx       context.Context
+	// DB        *sql.DB
+	GmStorage *model.GophermartStorage
 	SecretKey []byte // []byte("my_secret_key")
 }
 
@@ -68,14 +68,14 @@ type WithdrawReq struct {
 // 	Orders []OrderResponse `json:"orders"`
 // }
 
-func NewCustomer(customer model.Customer) Customer {
-	return Customer{
+func NewCustomer(customer *model.Customer) *Customer {
+	return &Customer{
 		ID:    customer.ID,
 		Login: customer.Login,
 	}
 }
 
-func NewOrderResponse(order model.Order) OrderResponse {
+func NewOrderResponse(order model.Order) *OrderResponse {
 	res := OrderResponse{
 		Number:    order.Number,
 		Status:    order.Status,
@@ -89,18 +89,18 @@ func NewOrderResponse(order model.Order) OrderResponse {
 			res.Withdrawal = order.Points
 		}
 	}
-	return res
+	return &res
 }
 
-func NewOrderListResponse(orders []model.Order) []OrderResponse {
-	res := []OrderResponse{}
+func NewOrderListResponse(orders []model.Order) []*OrderResponse {
+	res := []*OrderResponse{}
 	for _, order := range orders {
 		res = append(res, NewOrderResponse(order))
 	}
 	return res
 }
 
-func (s *DBStorage) Login(w http.ResponseWriter, r *http.Request) {
+func (s *GophermartHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	var buf bytes.Buffer
 	var auth Auth
 
@@ -115,7 +115,7 @@ func (s *DBStorage) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !security.VerifyUser(auth.Login, auth.Password, s.DB, s.Ctx) {
+	if !security.VerifyUser(auth.Login, auth.Password, s.GmStorage) {
 		w.WriteHeader(http.StatusUnauthorized) // неверная пара логин/пароль
 		return
 	}
@@ -130,7 +130,7 @@ func (s *DBStorage) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 // Хендлер доступен только авторизованному пользователю
-func (s *DBStorage) AddOrder(w http.ResponseWriter, r *http.Request) {
+func (s *GophermartHandlers) AddOrder(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -156,14 +156,14 @@ func (s *DBStorage) AddOrder(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("checked by Luhn numOrder:", numOrder)
 
-	orderExists, err := model.OrderExists(numOrder, s.DB, s.Ctx)
+	orderExists, err := s.GmStorage.OrderExists(numOrder)
 	if err != nil {
 		log.Println("error in order exists:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	if !orderExists {
-		err = model.AddNewOrder(userLogin, numOrder, s.DB, s.Ctx)
+		err = s.GmStorage.AddNewOrder(userLogin, numOrder)
 		if err != nil {
 			log.Println("error in adding order:", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -172,9 +172,7 @@ func (s *DBStorage) AddOrder(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusAccepted) // новый номер заказа принят в обработку
 		return
 	} else {
-		// TODO GetUserByOrder должен возвращать целого юзера с логином!!!!!!!!!!!!!
-		// тогда не нужен запрос GetLoginByID
-		customerFromModel, err := model.GetUserByOrder(numOrder, s.DB, s.Ctx)
+		customerFromModel, err := s.GmStorage.GetUserByOrder(numOrder)
 		customer := NewCustomer(customerFromModel)
 
 		if err != nil {
@@ -182,13 +180,7 @@ func (s *DBStorage) AddOrder(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		// loginToCheck, err := model.GetLoginByID(idUser, s.DB, s.Ctx)
-		// if err != nil {
-		// 	// правильно ли выбрала тип ошибки?????????
-		// 	w.WriteHeader(http.StatusInternalServerError)
-		// 	return
-		// }
-		if userLogin == customer.Login { //loginToCheck
+		if userLogin == customer.Login {
 			w.WriteHeader(http.StatusOK) // номер заказа уже был загружен этим пользователем
 			return
 		}
@@ -198,7 +190,7 @@ func (s *DBStorage) AddOrder(w http.ResponseWriter, r *http.Request) {
 }
 
 // Хендлер доступен только авторизованному пользователю
-func (s *DBStorage) GetOrders(w http.ResponseWriter, r *http.Request) {
+func (s *GophermartHandlers) GetOrders(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -213,7 +205,7 @@ func (s *DBStorage) GetOrders(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized) // пользователь не авторизован
 		return
 	}
-	customer, err := model.GetCustomerByLogin(userLogin, s.DB, s.Ctx)
+	customer, err := s.GmStorage.GetCustomerByLogin(userLogin)
 	log.Println("customer:", *customer)
 	if err != nil {
 		log.Println(err)
@@ -226,7 +218,7 @@ func (s *DBStorage) GetOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	orders, err := model.GetOrdersByUser(customer.ID, s.DB, s.Ctx)
+	orders, err := s.GmStorage.GetOrdersByUser(customer.ID)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -256,7 +248,7 @@ func (s *DBStorage) GetOrders(w http.ResponseWriter, r *http.Request) {
 }
 
 // Хендлер доступен только авторизованному пользователю
-func (s *DBStorage) GetBalance(w http.ResponseWriter, r *http.Request) {
+func (s *GophermartHandlers) GetBalance(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -265,7 +257,7 @@ func (s *DBStorage) GetBalance(w http.ResponseWriter, r *http.Request) {
 
 	userLogin := r.Header.Get("x-user")
 
-	customer, err := model.GetCustomerByLogin(userLogin, s.DB, s.Ctx)
+	customer, err := s.GmStorage.GetCustomerByLogin(userLogin)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError) // ошибка с БД
 		return
@@ -274,14 +266,14 @@ func (s *DBStorage) GetBalance(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound) // нет такого пользователя
 		return
 	}
-	pointsAccrual, err := model.GetAccrualPoints(customer.ID, s.DB, s.Ctx)
+	pointsAccrual, err := s.GmStorage.GetAccrualPoints(customer.ID)
 	if err != nil && err != sql.ErrNoRows {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	pointsWithdrawal, err := model.GetWithdrawalPoints(customer.ID, s.DB, s.Ctx)
+	pointsWithdrawal, err := s.GmStorage.GetWithdrawalPoints(customer.ID)
 	if err != nil && err != sql.ErrNoRows {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -310,7 +302,7 @@ func (s *DBStorage) GetBalance(w http.ResponseWriter, r *http.Request) {
 }
 
 // Хендлер доступен только авторизованному пользователю
-func (s *DBStorage) PostWithdraw(w http.ResponseWriter, r *http.Request) {
+func (s *GophermartHandlers) PostWithdraw(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -320,7 +312,7 @@ func (s *DBStorage) PostWithdraw(w http.ResponseWriter, r *http.Request) {
 	if userLogin == "" {
 		w.WriteHeader(http.StatusUnauthorized) // пользователь не авторизован
 	}
-	customer, err := model.GetCustomerByLogin(userLogin, s.DB, s.Ctx)
+	customer, err := s.GmStorage.GetCustomerByLogin(userLogin)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError) // ошибка с БД
@@ -352,7 +344,7 @@ func (s *DBStorage) PostWithdraw(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sumInAccount, err := model.GetAccrualPoints(customer.ID, s.DB, s.Ctx)
+	sumInAccount, err := s.GmStorage.GetAccrualPoints(customer.ID)
 	if err != nil {
 		log.Printf("error %v in getting accrual points by user id %d", err, customer.ID)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -366,7 +358,7 @@ func (s *DBStorage) PostWithdraw(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = model.Withdraw(wreq.OrderNumber, wreq.Sum, customer.ID, s.DB, s.Ctx)
+	err = s.GmStorage.Withdraw(wreq.OrderNumber, wreq.Sum, customer.ID)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError) // внутренняя ошибка сервера
@@ -384,7 +376,7 @@ func NewTransactionWListResponse(transactions []model.TransactionW) []Withdrawal
 }
 
 // Хендлер доступен только авторизованному пользователю
-func (s *DBStorage) GetWithdrawals(w http.ResponseWriter, r *http.Request) {
+func (s *GophermartHandlers) GetWithdrawals(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -395,7 +387,7 @@ func (s *DBStorage) GetWithdrawals(w http.ResponseWriter, r *http.Request) {
 	if userLogin == "" {
 		w.WriteHeader(http.StatusUnauthorized) // пользователь не авторизован
 	}
-	customer, err := model.GetCustomerByLogin(userLogin, s.DB, s.Ctx)
+	customer, err := s.GmStorage.GetCustomerByLogin(userLogin)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError) // ошибка с БД
@@ -406,7 +398,7 @@ func (s *DBStorage) GetWithdrawals(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	transactions, err := model.WithdrawalsByUser(customer.ID, s.DB, s.Ctx)
+	transactions, err := s.GmStorage.WithdrawalsByUser(customer.ID)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -434,7 +426,7 @@ func (s *DBStorage) GetWithdrawals(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (s *DBStorage) RegisterCustomer(w http.ResponseWriter, r *http.Request) {
+func (s *GophermartHandlers) RegisterCustomer(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -456,7 +448,7 @@ func (s *DBStorage) RegisterCustomer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = model.AddUser(customer.Login, customer.Password, s.DB, s.Ctx)
+	err = s.GmStorage.AddUser(customer.Login, customer.Password)
 	if err != nil {
 		if model.IsUserExistsErr(err) {
 			w.WriteHeader(http.StatusConflict)
