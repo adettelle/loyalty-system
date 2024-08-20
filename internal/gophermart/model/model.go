@@ -334,3 +334,17 @@ func UpdateAccrualPoints(accrual float64, number string, db *sql.DB, ctx context
 	log.Println("Points have been accrued")
 	return nil
 }
+
+func AddNewOrder(userLogin string, numOrder string, db *sql.DB, ctx context.Context) error {
+	log.Println("Writing to DB")
+
+	sqlStatement := `insert into "order" (customer_id, number, status)
+			values ((select id from customer where login = $1), $2, $3);`
+
+	_, err := db.ExecContext(ctx, sqlStatement, userLogin, numOrder, StatusNew)
+	if err != nil {
+		return err
+	}
+	log.Println("Order have been added")
+	return nil
+}

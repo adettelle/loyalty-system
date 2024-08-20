@@ -5,7 +5,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -148,12 +147,7 @@ func (s *DBStorage) AddOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !orderExists {
-		log.Println("Writing to DB")
-		// TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		sqlStatement := `insert into "order" (customer_id, number, status)
-			values ((select id from customer where login = $1), $2, $3);`
-
-		_, err = s.DB.ExecContext(s.Ctx, sqlStatement, userLogin, numOrder, model.StatusNew)
+		err = model.AddNewOrder(userLogin, numOrder, s.DB, s.Ctx)
 		if err != nil {
 			log.Println("error in adding order:", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -193,7 +187,8 @@ func (s *DBStorage) GetOrders(w http.ResponseWriter, r *http.Request) {
 
 	userLogin := r.Header.Get("x-user")
 	log.Println("userLogin:", userLogin)
-	if userLogin == "" {
+	// в некоторых местах и такой проверки нет!!!!!!!!!!!!!!!!!!!!
+	if userLogin == "" { // достаточно ли проверки, что это не пустая строка??????????????
 		w.WriteHeader(http.StatusUnauthorized) // пользователь не авторизован
 		return
 	}
@@ -222,8 +217,8 @@ func (s *DBStorage) GetOrders(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent) // нет данных для ответа
 		return
 	}
-	x := NewOrderListResponse(orders)
-	log.Println(x)
+	orderListResponse := NewOrderListResponse(orders)
+	log.Println(orderListResponse)
 	resp, err := json.Marshal(NewOrderListResponse(orders))
 	if err != nil {
 		log.Println(err)
@@ -330,9 +325,6 @@ func (s *DBStorage) PostWithdraw(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	fmt.Println(wreq.OrderNumber)
-	fmt.Println(wreq.Sum)
 
 	if !luhn.CheckLuhn(wreq.OrderNumber) {
 		w.WriteHeader(http.StatusUnprocessableEntity) // неверный номер заказа
