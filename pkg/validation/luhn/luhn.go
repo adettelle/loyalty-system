@@ -10,35 +10,25 @@ func CheckLuhn(input string) bool {
 
 	resStr := []int{}
 
-	if len(input)%2 == 0 { //количество цифр чётное, значит, начинаем со второй цифры (идекс 1)
-		for i, val := range input {
-			num, _ := strconv.Atoi(string(val))
-			if i%2 == 0 {
-				x := num * 2
-				if x > 9 {
-					x = x - 9
-					resStr = append(resStr, x)
-				} else {
-					resStr = append(resStr, x)
-				}
+	startFrom := 0
+	if len(input)%2 == 0 {
+		startFrom = 1
+	}
+
+	// если количество цифр чётное, значит, начинаем со второй цифры (идекс 1)
+	// если нечётное, начинаем спервой цифры (идекс 0)
+	for i, val := range input[startFrom:] {
+		num, _ := strconv.Atoi(string(val))
+		if i%2 != 0 {
+			x := num * 2
+			if x > 9 {
+				x = x - 9
+				resStr = append(resStr, x)
 			} else {
-				resStr = append(resStr, num)
+				resStr = append(resStr, x)
 			}
-		}
-	} else { // иначе (когда количество цифр нечётное) начинаем со первой цифры (идекс 0)
-		for i, val := range input {
-			num, _ := strconv.Atoi(string(val))
-			if i%2 != 0 {
-				x := num * 2
-				if x > 9 {
-					x = x - 9
-					resStr = append(resStr, x)
-				} else {
-					resStr = append(resStr, x)
-				}
-			} else {
-				resStr = append(resStr, num)
-			}
+		} else {
+			resStr = append(resStr, num)
 		}
 	}
 

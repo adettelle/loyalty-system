@@ -79,29 +79,29 @@ func (as *AccrualSystem) AccrualLoop() {
 		ticker := time.NewTicker(time.Second * 2)
 
 		for range ticker.C {
-			ordersWithNewStatus, err := model.GetAllNewOrders(as.DB, context.Background())
-			log.Println("Orders with new status:", ordersWithNewStatus)
+			ordersWithProcessingStatus, err := model.GetAllProcessingOrders(as.DB, context.Background())
+			log.Println("Orders with new status:", ordersWithProcessingStatus)
 			if err != nil {
-				log.Println("err1:", err) // ??????????????????????
+				log.Println("error in getting orders with status 'processing':", err)
 				continue
 			}
-			for _, ord := range ordersWithNewStatus {
+			for _, ord := range ordersWithProcessingStatus {
 				orderFromAccrual, err := GetOrderFromAccrualSystem(ord.Number, as.URI)
 				if err != nil {
-					log.Println("err2:", err) // ????????????????????
+					log.Println("error in getting orders from accrual system with changed status:", err)
 					continue
 				}
 				log.Println("Orders from accrual system:", orderFromAccrual)
 
 				err = model.UpdateOrderStatus(orderFromAccrual.Status, ord.Number, as.DB, context.Background())
 				if err != nil {
-					log.Println("err3:", err) // ????????????????????
+					log.Println("error in updating status of orders:", err)
 					continue
 				}
 
 				err = model.UpdateAccrualPoints(orderFromAccrual.Accrual, ord.Number, as.DB, context.Background())
 				if err != nil {
-					log.Println("err4:", err) // ????????????????????
+					log.Println("error in updating points of orders:", err)
 					continue
 				}
 			}

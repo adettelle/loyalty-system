@@ -51,39 +51,6 @@ func main() {
 
 	accrualSystem.AccrualLoop()
 
-	// go func() {
-	// 	ticker := time.NewTicker(time.Second * 2)
-
-	// 	for range ticker.C {
-	// 		ordersWithNewStatus, err := model.GetAllNewOrders(db, context.Background())
-	// 		log.Println("Orders with new status:", ordersWithNewStatus)
-	// 		if err != nil {
-	// 			log.Println("err1:", err) // ??????????????????????
-	// 			continue
-	// 		}
-	// 		for _, ord := range ordersWithNewStatus {
-	// 			orderFromAccrual, err := accrualservice.GetOrderFromAccrualSystem(ord.Number, config.AccrualSystemAddress)
-	// 			if err != nil {
-	// 				log.Println("err2:", err) // ????????????????????
-	// 				continue
-	// 			}
-	// 			log.Println("Orders from accrual system:", orderFromAccrual)
-
-	// 			err = model.UpdateOrderStatus(orderFromAccrual.Status, ord.Number, db, context.Background())
-	// 			if err != nil {
-	// 				log.Println("err3:", err) // ????????????????????
-	// 				continue
-	// 			}
-
-	// 			err = model.UpdateAccrualPoints(orderFromAccrual.Accrual, ord.Number, db, context.Background())
-	// 			if err != nil {
-	// 				log.Println("err4:", err) // ????????????????????
-	// 				continue
-	// 			}
-	// 		}
-	// 	}
-	// }()
-
 	err = http.ListenAndServe(address, r)
 	if err != nil {
 		log.Fatal(err)

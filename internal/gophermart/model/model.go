@@ -18,8 +18,8 @@ const (
 	StatusProcessed       = "PROCESSED"
 	TransactionAccrual    = `accrual`
 	TransactionWithdrawal = `withdrawal`
-	RewardTypePercent     = `percent`
-	RewardTypePoints      = `points`
+	// RewardTypePercent     = `percent`
+	// RewardTypePoints      = `points`
 )
 
 type Order struct {
@@ -287,10 +287,11 @@ func AddUser(login string, password string, db *sql.DB, ctx context.Context) err
 	return nil
 }
 
-func GetAllNewOrders(db *sql.DB, ctx context.Context) ([]Order, error) {
+// GetAllProcessingOrders находит все заказы состатусом new и меняет их статус на processing
+func GetAllProcessingOrders(db *sql.DB, ctx context.Context) ([]Order, error) {
 	orders := make([]Order, 0)
 
-	sqlSt := `select id, "number", status from "order" where status = 'NEW';`
+	sqlSt := `update "order" set status = 'PROCESSING' where status = 'NEW' returning id, "number", status;`
 
 	rows, err := db.QueryContext(ctx, sqlSt)
 	if err != nil || rows.Err() != nil {
