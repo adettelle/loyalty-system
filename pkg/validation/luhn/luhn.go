@@ -17,9 +17,9 @@ func CheckLuhn(input string) bool {
 
 	// если количество цифр чётное, значит, начинаем со второй цифры (идекс 1)
 	// если нечётное, начинаем спервой цифры (идекс 0)
-	for i, val := range input[startFrom:] {
+	for i, val := range input {
 		num, _ := strconv.Atoi(string(val))
-		if i%2 != 0 {
+		if (i+startFrom)%2 != 0 {
 			x := num * 2
 			if x > 9 {
 				x = x - 9

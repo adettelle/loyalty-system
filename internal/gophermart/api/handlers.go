@@ -321,7 +321,7 @@ func (s *DBStorage) PostWithdraw(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.Unmarshal(buf.Bytes(), &wreq); err != nil {
-		log.Println(err)
+		log.Println("error in unmarshalling:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -333,7 +333,7 @@ func (s *DBStorage) PostWithdraw(w http.ResponseWriter, r *http.Request) {
 
 	sumInAccount, err := model.GetAccrualPoints(customer.ID, s.DB, s.Ctx)
 	if err != nil {
-		log.Println(err)
+		log.Printf("error %v in getting accrual points by user id %d", err, customer.ID)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
