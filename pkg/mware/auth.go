@@ -29,11 +29,9 @@ func AuthMwr(h http.HandlerFunc, secret []byte) http.HandlerFunc {
 		if !ok {
 			w.WriteHeader(http.StatusUnauthorized) // пользователь не аутентифицирован
 			return
-		} else {
-			r.Header.Set("x-user", login)
-			h.ServeHTTP(w, r) // передали следующей функции, которую мы обрамляем middleware'ом
-			return
 		}
+		r.Header.Set("x-user", login)
+		h.ServeHTTP(w, r) // передали следующей функции, которую мы обрамляем middleware'ом
 	}
 	// возвращаем функционально расширенный хендлер
 	return http.HandlerFunc(authFn)

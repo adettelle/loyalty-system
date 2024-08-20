@@ -46,7 +46,9 @@ type TransactionW struct {
 
 // GetUserByOrder возвращает юзера и ошибку
 func GetUserByOrder(numOrder string, db *sql.DB, ctx context.Context) (Customer, error) {
-	sqlSt := `select customer_id, login, password from "order" where "number" = $1;`
+	sqlSt := `select c.id, c.login, c."password" from "order" ord
+		inner join customer c on c.id = ord.customer_id 
+		where "number" = $1;`
 	row := db.QueryRowContext(ctx, sqlSt, numOrder)
 
 	var customer Customer

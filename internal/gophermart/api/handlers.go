@@ -158,6 +158,7 @@ func (s *DBStorage) AddOrder(w http.ResponseWriter, r *http.Request) {
 
 	orderExists, err := model.OrderExists(numOrder, s.DB, s.Ctx)
 	if err != nil {
+		log.Println("error in order exists:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -177,6 +178,7 @@ func (s *DBStorage) AddOrder(w http.ResponseWriter, r *http.Request) {
 		customer := NewCustomer(customerFromModel)
 
 		if err != nil {
+			log.Println("error in get user by order:", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
