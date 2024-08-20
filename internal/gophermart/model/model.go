@@ -32,7 +32,9 @@ type Order struct {
 }
 
 type Customer struct {
-	ID int
+	ID       int
+	Login    string
+	Password string
 }
 
 // транзакция списания
@@ -42,15 +44,15 @@ type TransactionW struct {
 	CreatedAt   time.Time
 }
 
-// GetUserByOrder возвращает id юзера и ошибку
-func GetUserByOrder(numOrder string, db *sql.DB, ctx context.Context) (int, error) {
-	sqlSt := `select customer_id from "order" where "number" = $1;`
+// GetUserByOrder возвращает юзера и ошибку
+func GetUserByOrder(numOrder string, db *sql.DB, ctx context.Context) (Customer, error) {
+	sqlSt := `select customer_id, login, password from "order" where "number" = $1;`
 	row := db.QueryRowContext(ctx, sqlSt, numOrder)
 
-	var id int
-	err := row.Scan(&id)
+	var customer Customer
+	err := row.Scan(&customer.ID, &customer.Login, &customer.Password)
 
-	return id, err
+	return customer, err
 }
 
 func GetLoginByID(id int, db *sql.DB, ctx context.Context) (string, error) {
@@ -83,20 +85,20 @@ func OrderExists(numOrder string, db *sql.DB, ctx context.Context) (bool, error)
 // id, true, err - такой номера заказа есть у проверяемого пользователя
 func UserHasOrder(numOrder string, userID int, db *sql.DB, ctx context.Context) (int, bool, error) {
 	// если 0, err=nil - это значит, что юзера с таким заказом нет
-	userIDByGet, err := GetUserByOrder(numOrder, db, ctx)
-	if err == sql.ErrNoRows { // такого номера заказа ни у кого нет
+	customer, err := GetUserByOrder(numOrder, db, ctx)
+	if err != nil || err == sql.ErrNoRows { // такого номера заказа ни у кого нет
 		log.Printf("There is no user with order number %s", numOrder)
-		return userIDByGet, false, nil
+		return customer.ID, false, nil // userIDByGet было
 	}
 	// if userIdByGet == 0 { // такого номера заказа у пользователя нет
 	// 	log.Printf("There is no user with order number %s", numOrder)
 	// 	return userIdByGet, false, err
 	// }
-	if userIDByGet != userID { // такой номера заказа уже есть у другого пользователя
-		log.Printf("There is a user %d with order number %s", userIDByGet, numOrder)
-		return userIDByGet, false, err
+	if customer.ID != userID { // такой номера заказа уже есть у другого пользователя // userIDByGet было
+		log.Printf("There is a user %d with order number %s", customer.ID, numOrder)
+		return customer.ID, false, err // userIDByGet было
 	}
-	return userIDByGet, true, err // такой номера заказа есть у проверяемого пользователя
+	return customer.ID, true, err // такой номера заказа есть у проверяемого пользователя // userIDByGet было
 }
 
 func GetOrdersByUser(userID int, db *sql.DB, ctx context.Context) ([]Order, error) {

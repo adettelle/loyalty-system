@@ -25,10 +25,18 @@ type Auth struct {
 	Password string `json:"password"`
 }
 
-type TransactionWResponse struct {
+type WithdrawalTxResponse struct {
 	OrderNumber string    `json:"order"`
 	Points      float64   `json:"sum"`
 	CreatedAt   time.Time `json:"created_at"`
+}
+
+func NewWithdrawalTxResponse(transaction model.TransactionW) WithdrawalTxResponse {
+	return WithdrawalTxResponse{
+		OrderNumber: transaction.OrderNumber,
+		Points:      transaction.Points,
+		CreatedAt:   transaction.CreatedAt, // Формат даты — RFC3339
+	}
 }
 
 type OrderResponse struct {
@@ -41,6 +49,7 @@ type OrderResponse struct {
 }
 
 type Customer struct {
+	ID       int    `json:"id"`
 	Login    string `json:"login"`
 	Password string `json:"password"`
 }
@@ -58,6 +67,13 @@ type WithdrawReq struct {
 // type OrdersListResponse struct {
 // 	Orders []OrderResponse `json:"orders"`
 // }
+
+func NewCustomer(customer model.Customer) Customer {
+	return Customer{
+		ID:    customer.ID,
+		Login: customer.Login,
+	}
+}
 
 func NewOrderResponse(order model.Order) OrderResponse {
 	res := OrderResponse{
@@ -95,11 +111,9 @@ func (s *DBStorage) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.Unmarshal(buf.Bytes(), &auth); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
-	// 400 — неверный формат запроса; ????????????????????????
 
 	if !security.VerifyUser(auth.Login, auth.Password, s.DB, s.Ctx) {
 		w.WriteHeader(http.StatusUnauthorized) // неверная пара логин/пароль
@@ -125,6 +139,7 @@ func (s *DBStorage) AddOrder(w http.ResponseWriter, r *http.Request) {
 	userLogin := r.Header.Get("x-user")
 
 	var buf bytes.Buffer
+	// var customer Customer
 
 	// читаем тело запроса
 	_, err := buf.ReadFrom(r.Body)
@@ -141,7 +156,7 @@ func (s *DBStorage) AddOrder(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("checked by Luhn numOrder:", numOrder)
 
-	orderExists, err := model.OrderExists(numOrder, s.DB, s.Ctx) // что делать с ошибкой?????????
+	orderExists, err := model.OrderExists(numOrder, s.DB, s.Ctx)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -156,19 +171,22 @@ func (s *DBStorage) AddOrder(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusAccepted) // новый номер заказа принят в обработку
 		return
 	} else {
-		idUser, err := model.GetUserByOrder(numOrder, s.DB, s.Ctx)
+		// TODO GetUserByOrder должен возвращать целого юзера с логином!!!!!!!!!!!!!
+		// тогда не нужен запрос GetLoginByID
+		customerFromModel, err := model.GetUserByOrder(numOrder, s.DB, s.Ctx)
+		customer := NewCustomer(customerFromModel)
+
 		if err != nil {
-			// правильно ли выбрала тип ошибки?????????
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		loginToCheck, err := model.GetLoginByID(idUser, s.DB, s.Ctx)
-		if err != nil {
-			// правильно ли выбрала тип ошибки?????????
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		if userLogin == loginToCheck {
+		// loginToCheck, err := model.GetLoginByID(idUser, s.DB, s.Ctx)
+		// if err != nil {
+		// 	// правильно ли выбрала тип ошибки?????????
+		// 	w.WriteHeader(http.StatusInternalServerError)
+		// 	return
+		// }
+		if userLogin == customer.Login { //loginToCheck
 			w.WriteHeader(http.StatusOK) // номер заказа уже был загружен этим пользователем
 			return
 		}
@@ -188,6 +206,7 @@ func (s *DBStorage) GetOrders(w http.ResponseWriter, r *http.Request) {
 	userLogin := r.Header.Get("x-user")
 	log.Println("userLogin:", userLogin)
 	// в некоторых местах и такой проверки нет!!!!!!!!!!!!!!!!!!!!
+	// TODO userLogin не моежт быть пустым, он проверяется в middleware. Убрать здесь и везде
 	if userLogin == "" { // достаточно ли проверки, что это не пустая строка??????????????
 		w.WriteHeader(http.StatusUnauthorized) // пользователь не авторизован
 		return
@@ -354,20 +373,10 @@ func (s *DBStorage) PostWithdraw(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// если сам TransactionW в model, то NewTransactionWResponse тоже должен быть там????????????????????
-// но он жн не может возвращать TransactionWResponse, который здесь.. ????????????????????????
-func NewTransactionWResponse(transaction model.TransactionW) TransactionWResponse {
-	return TransactionWResponse{
-		OrderNumber: transaction.OrderNumber,
-		Points:      transaction.Points,
-		CreatedAt:   transaction.CreatedAt, // Формат даты — RFC3339
-	}
-}
-
-func NewTransactionWListResponse(transactions []model.TransactionW) []TransactionWResponse {
-	res := []TransactionWResponse{}
+func NewTransactionWListResponse(transactions []model.TransactionW) []WithdrawalTxResponse {
+	res := []WithdrawalTxResponse{}
 	for _, transaction := range transactions {
-		res = append(res, NewTransactionWResponse(transaction))
+		res = append(res, NewWithdrawalTxResponse(transaction))
 	}
 	return res
 }
@@ -423,8 +432,6 @@ func (s *DBStorage) GetWithdrawals(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// 409 — логин уже занят ????????????????????????
-// После успешной регистрации должна происходить автоматическая аутентификация пользователя ?????????
 func (s *DBStorage) RegisterCustomer(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -462,6 +469,7 @@ func (s *DBStorage) RegisterCustomer(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	// автоматическая аутентификация пользователя после успешной регистрации
 	w.Header().Set("Authorization", "Bearer "+token)
 
 	w.WriteHeader(http.StatusOK)
