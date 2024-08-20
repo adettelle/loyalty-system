@@ -21,25 +21,6 @@ func CreateTable(db *sql.DB, ctx context.Context) error { // user
 		return err
 	}
 
-	// начисления и списания
-	// transactionType := `create type transaction_type_enum as enum ('accrual', 'withdrawal');`
-	// _, err = db.ExecContext(ctx, transactionType) // , model.TransactionAccrual, model.TransactionWithdrawal)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// statusType := `create type status_type_enum as enum ('new', 'processing', 'invalid', 'processed');`
-	// _, err = db.ExecContext(ctx, statusType) // , model.StatusNew, model.StatusProcessing, model.StatusInvalid, model.StatusProcessed)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// rewardType := `create type reward_type_enum as enum ('percent', 'points');`
-	// _, err = db.ExecContext(ctx, rewardType) //, model.RewardTypePercent, model.RewardTypePoints)
-	// if err != nil {
-	// 	return err
-	// }
-
 	sqlStOrder := `create table if not exists "order"
 		(id serial primary key,
 		customer_id integer, 
@@ -91,24 +72,14 @@ func CreateTable(db *sql.DB, ctx context.Context) error { // user
 		return err
 	}
 
-	sqlStReward := `create table if not exists reward
-		(id serial primary key,
-		title varchar(60), 
-		product_id integer references product (id),
-		description varchar(255),
-		reward_type varchar(30) not null);`
-
-	_, err = db.ExecContext(ctx, sqlStReward)
-	if err != nil {
-		return err
-	}
-
-	// sqlStRewardSystem := `create table if not exists reward_system
+	// sqlStReward := `create table if not exists reward
 	// 	(id serial primary key,
-	// 	order_id integer references "order" (id),
-	// 	points double precision);`
+	// 	title varchar(60),
+	// 	product_id integer references product (id),
+	// 	description varchar(255),
+	// 	reward_type varchar(30) not null);`
 
-	// _, err = db.ExecContext(ctx, sqlStRewardSystem)
+	// _, err = db.ExecContext(ctx, sqlStReward)
 	// if err != nil {
 	// 	return err
 	// }

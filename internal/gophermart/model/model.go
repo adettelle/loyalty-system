@@ -33,40 +33,14 @@ type Order struct {
 
 type Customer struct {
 	ID int
-	// FirstName string
-	// LastName  string
-	// Email     string
-	// Phone     string
-	// Roles
-	// IsDeleted
 }
 
 // транзакция списания
 type TransactionW struct {
-	// Id       string
 	OrderNumber string
-	// Status   string
-	Points    float64
-	CreatedAt time.Time
+	Points      float64
+	CreatedAt   time.Time
 }
-
-// // если возврат (0, err) - это значит, что юзера с таким заказом нет
-// func GetUserByOrderOld(numOrder string, db *sql.DB, ctx context.Context) (int, error) {
-// 	sqlSt := `select customer_id from "order" where "number" = $1;`
-// 	row := db.QueryRowContext(ctx, sqlSt, numOrder)
-
-// 	var id int
-
-// 	err := row.Scan(&id)
-// 	log.Println("err:", err)
-// 	log.Println("id:", id)
-// 	// if no rows there is no session
-// 	if err == sql.ErrNoRows {
-// 		return 0, nil
-// 	}
-// 	// an error other than no rows was returned, return with error
-// 	return id, err
-// }
 
 // GetUserByOrder возвращает id юзера и ошибку
 func GetUserByOrder(numOrder string, db *sql.DB, ctx context.Context) (int, error) {
@@ -101,31 +75,6 @@ func OrderExists(numOrder string, db *sql.DB, ctx context.Context) (bool, error)
 	return ordExists, err
 }
 
-// // проверяем, есть ли пользователь с таким номером заказа
-// func UserHasOrder(numOrder string, userId int, db *sql.DB, ctx context.Context) (bool, error) {
-// 	ordExists, err := OrderExists(numOrder, db, ctx)
-// 	if !ordExists {
-// 		return false, err
-// 	}
-
-// 	userIdByGet, err := GetUserByOrder(numOrder, db, ctx)
-// 	if userIdByGet != userId { // такой номера заказа уже есть у другого пользователя
-// 		return
-// 	}
-
-// 	// если 0, err - это значит, что юзера с таким заказом нет
-// 	userIdByGet, err := GetUserByOrder(numOrder, db, ctx)
-// 	if userIdByGet == 0 { // такого номера заказа у пользователя нет
-// 		log.Printf("There is no user with order number %s", numOrder)
-// 		return userIdByGet, false, err
-// 	}
-// 	if userIdByGet != userId { // такой номера заказа уже есть у другого пользователя
-// 		log.Printf("There is a user %d with order number %s", userIdByGet, numOrder)
-// 		return userIdByGet, false, err
-// 	}
-// 	return userIdByGet, true, nil // такой номера заказа есть у проверяемого пользователя
-// }
-
 // ????????????????/
 // проверяем, есть ли пользователь с таким номером заказа
 // UserHasOrder возвращает id юзера, bool, err
@@ -149,19 +98,6 @@ func UserHasOrder(numOrder string, userID int, db *sql.DB, ctx context.Context) 
 	}
 	return userIDByGet, true, err // такой номера заказа есть у проверяемого пользователя
 }
-
-// func AddOrder(numOrder string, userId int, db *sql.DB, ctx context.Context) error {
-// 	log.Println("Writing to DB")
-// 	sqlSt := `insert into "order" (customer_id, number, status)
-// 			values ($1, $2, $3)` // on conflict
-
-// 	_, err := db.ExecContext(ctx, sqlSt, 1, numOrder, StatusNew)
-// 	if err != nil {
-// 		log.Println("error in adding order:", err)
-// 		return err
-// 	}
-// 	return nil
-// }
 
 func GetOrdersByUser(userID int, db *sql.DB, ctx context.Context) ([]Order, error) {
 	orders := make([]Order, 0)
@@ -233,17 +169,10 @@ func GetWithdrawalPoints(userID int, db *sql.DB, ctx context.Context) (float64, 
 
 // Withdraw списывает баллы sum с номера счета order у зарегистрированного пользователя
 func Withdraw(order string, sum float64, userID int, db *sql.DB, ctx context.Context) error {
-	// sqlSt := `update loyalty_system ls
-	// 	set points = points - $1
-	// 	where customer_id = $2 and transacton = $3;`
 	sqlNewOrder := `insert into "order" (customer_id, "number", status)
 		values ($1, $2, $3) returning id;`
 
-	row := db.QueryRowContext(ctx, sqlNewOrder, userID, order, StatusNew) // ExecContext
-	// if err != nil {
-	// 	log.Printf("error %v in inserting new order %s by withdrawal %f", err, order, sum)
-	// 	return err
-	// }
+	row := db.QueryRowContext(ctx, sqlNewOrder, userID, order, StatusNew)
 
 	var orderID int
 

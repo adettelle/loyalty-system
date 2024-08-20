@@ -98,10 +98,8 @@ type OrderStatsResp struct {
 
 // GET /api/orders/{number}
 func GetOrderFromAccrualSystem(number string, url string) (OrderStatsResp, error) {
-	// log.Println("In GetStatusFromAccrualSystem")
 	var ord OrderStatsResp
 
-	// url :=  // "http://localhost:8081/api/orders/" + number
 	url = url + "/api/orders/" + number
 	log.Println(url)
 	req, err := http.NewRequest(http.MethodGet, url, nil)

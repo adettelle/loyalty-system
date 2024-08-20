@@ -10,12 +10,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// var (
-// 	secret = []byte("my_secret_key")
-// )
-
-//var secret []byte
-
 type UserPassword struct {
 	login string
 	pwd   string
@@ -49,12 +43,9 @@ func VerifyUser(login string, pass string, db *sql.DB, ctx context.Context) bool
 // если у пользователь ввел правильные данные, и у него есть необходимая привилегия -
 // возвращаем true и логин пользователя, иначе - false
 func VerifyToken(secret []byte, token string) (string, bool) {
-	log.Println("in VerifyToken")
 	jwtToken, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
 		return secret, nil
 	})
-
-	//log.Println("jwtToken:", jwtToken)
 
 	if err != nil {
 		log.Printf("Failed to parse token: %s\n", err)

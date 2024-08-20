@@ -12,7 +12,7 @@ import (
 
 type Config struct {
 	Address              string `envconfig:"RUN_ADDRESS" flag:"a" default:"localhost:8080"`
-	DBUri                string `envconfig:"DATABASE_URI" flag:"d"` //  default:""
+	DBUri                string `envconfig:"DATABASE_URI" flag:"d"`
 	AccrualSystemAddress string `envconfig:"ACCRUAL_SYSTEM_ADDRESS" flag:"r" default:"http://localhost:8081"`
 	Key                  string `envconfig:"KEY" flag:"k"` // ключ для подписи
 }
