@@ -38,7 +38,7 @@ type Customer struct {
 }
 
 // транзакция списания
-type TransactionW struct {
+type TxWithdraw struct {
 	OrderNumber string
 	Points      float64
 	CreatedAt   time.Time
@@ -56,6 +56,25 @@ func NewGophermartStorage(db *sql.DB, ctx context.Context) *GophermartStorage {
 	}
 }
 
+type UserExistsErr struct {
+	login string
+}
+
+func (ue *UserExistsErr) Error() string {
+	return fmt.Sprintf("user %s already exists", ue.login)
+}
+
+func NewUserExistsErr(login string) *UserExistsErr {
+	return &UserExistsErr{
+		login: login,
+	}
+}
+
+func IsUserExistsErr(err error) bool {
+	var customErr *UserExistsErr
+	return errors.As(err, &customErr)
+}
+
 // GetUserByOrder возвращает юзера и ошибку
 func (gs *GophermartStorage) GetUserByOrder(numOrder string) (*Customer, error) {
 	sqlSt := `select c.id, c.login, c."password" from "order" ord
@@ -69,16 +88,6 @@ func (gs *GophermartStorage) GetUserByOrder(numOrder string) (*Customer, error) 
 	return &customer, err
 }
 
-func (gs *GophermartStorage) GetLoginByID(id int) (string, error) {
-	sqlSt := `select login from customer where id = $1;`
-	row := gs.DB.QueryRowContext(gs.Ctx, sqlSt, id)
-
-	var login string
-	err := row.Scan(&login)
-
-	return login, err
-}
-
 func (gs *GophermartStorage) OrderExists(numOrder string) (bool, error) {
 	sqlSt := `select count(id) > 0 as order_exists from "order" where "number" = $1;`
 	row := gs.DB.QueryRowContext(gs.Ctx, sqlSt, numOrder)
@@ -90,30 +99,6 @@ func (gs *GophermartStorage) OrderExists(numOrder string) (bool, error) {
 	log.Println("ordExists:", ordExists)
 	return ordExists, err
 }
-
-// ????????????????/
-// проверяем, есть ли пользователь с таким номером заказа
-// UserHasOrder возвращает id юзера, bool, err
-// 0, false, nil - такого номера заказа ни у кого нет
-// id, false, err - такой номера заказа уже есть у другого пользователя
-// id, true, err - такой номера заказа есть у проверяемого пользователя
-// func (gs *GophermartStorage) UserHasOrder(numOrder string, userID int) (int, bool, error) {
-// 	// если 0, err=nil - это значит, что юзера с таким заказом нет
-// 	customer, err := gs.GetUserByOrder(numOrder)
-// 	if err != nil || err == sql.ErrNoRows { // такого номера заказа ни у кого нет
-// 		log.Printf("There is no user with order number %s", numOrder)
-// 		return customer.ID, false, nil // userIDByGet было
-// 	}
-// 	// if userIdByGet == 0 { // такого номера заказа у пользователя нет
-// 	// 	log.Printf("There is no user with order number %s", numOrder)
-// 	// 	return userIdByGet, false, err
-// 	// }
-// 	if customer.ID != userID { // такой номера заказа уже есть у другого пользователя // userIDByGet было
-// 		log.Printf("There is a user %d with order number %s", customer.ID, numOrder)
-// 		return customer.ID, false, err // userIDByGet было
-// 	}
-// 	return customer.ID, true, err // такой номера заказа есть у проверяемого пользователя // userIDByGet было
-// }
 
 func (gs *GophermartStorage) GetOrdersByUser(userID int) ([]Order, error) {
 	orders := make([]Order, 0)
@@ -149,7 +134,7 @@ func (gs *GophermartStorage) GetOrdersByUser(userID int) ([]Order, error) {
 // GetAccrualPoints показывает количество набранных баллов пользователя
 func (gs *GophermartStorage) GetAccrualPoints(userID int) (float64, error) {
 	sqlSt := `select coalesce (sum(points), 0) from loyalty_system 
-		where customer_id = $1 and transacton = $2;` // 'accrual'
+		where customer_id = $1 and transacton = $2;`
 
 	row := gs.DB.QueryRowContext(gs.Ctx, sqlSt, userID, TransactionAccrual)
 
@@ -168,7 +153,7 @@ func (gs *GophermartStorage) GetAccrualPoints(userID int) (float64, error) {
 // GetWithdrawalPoints показывает количество потраченных баллов пользователя
 func (gs *GophermartStorage) GetWithdrawalPoints(userID int) (float64, error) {
 	sqlSt := `select coalesce (sum(points), 0) from loyalty_system
-		where customer_id = $1 and transacton = $2;` // 'withdrawal'
+		where customer_id = $1 and transacton = $2;`
 
 	row := gs.DB.QueryRowContext(gs.Ctx, sqlSt, userID, TransactionWithdrawal)
 
@@ -210,9 +195,9 @@ func (gs *GophermartStorage) Withdraw(order string, sum float64, userID int) err
 	return nil
 }
 
-// AllWithdrawals показывает все транзакции с выводом средств
-func (gs *GophermartStorage) WithdrawalsByUser(userID int) ([]TransactionW, error) {
-	transactions := make([]TransactionW, 0)
+// WithdrawalsByUser показывает все транзакции с выводом средств
+func (gs *GophermartStorage) WithdrawalsByUser(userID int) ([]TxWithdraw, error) {
+	transactions := make([]TxWithdraw, 0)
 	sqlSt := `select ord."number", ls.points, ls.created_at 
 		from loyalty_system ls 
 		join "order" ord
@@ -228,7 +213,7 @@ func (gs *GophermartStorage) WithdrawalsByUser(userID int) ([]TransactionW, erro
 
 	// пробегаем по всем записям
 	for rows.Next() {
-		var tr TransactionW
+		var tr TxWithdraw
 		err := rows.Scan(&tr.OrderNumber, &tr.Points, &tr.CreatedAt)
 		if err != nil || rows.Err() != nil {
 			return nil, err
@@ -254,25 +239,6 @@ func (gs *GophermartStorage) GetCustomerByLogin(login string) (*Customer, error)
 		return nil, err
 	}
 	return &customer, nil
-}
-
-type UserExistsErr struct {
-	login string
-}
-
-func (ue *UserExistsErr) Error() string {
-	return fmt.Sprintf("user %s already exists", ue.login)
-}
-
-func NewUserExistsErr(login string) *UserExistsErr {
-	return &UserExistsErr{
-		login: login,
-	}
-}
-
-func IsUserExistsErr(err error) bool {
-	var customErr *UserExistsErr
-	return errors.As(err, &customErr)
 }
 
 // регистрация пользователя

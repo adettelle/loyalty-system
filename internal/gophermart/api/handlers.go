@@ -31,12 +31,20 @@ type WithdrawalTxResponse struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
-func NewWithdrawalTxResponse(transaction model.TransactionW) WithdrawalTxResponse {
+func NewWithdrawalTxResponse(transaction model.TxWithdraw) WithdrawalTxResponse {
 	return WithdrawalTxResponse{
 		OrderNumber: transaction.OrderNumber,
 		Points:      transaction.Points,
 		CreatedAt:   transaction.CreatedAt, // Формат даты — RFC3339
 	}
+}
+
+func NewWithdrawalTxListResponse(transactions []model.TxWithdraw) []WithdrawalTxResponse {
+	res := []WithdrawalTxResponse{}
+	for _, transaction := range transactions {
+		res = append(res, NewWithdrawalTxResponse(transaction))
+	}
+	return res
 }
 
 type OrderResponse struct {
@@ -106,11 +114,13 @@ func (s *GophermartHandlers) Login(w http.ResponseWriter, r *http.Request) {
 
 	_, err := buf.ReadFrom(r.Body)
 	if err != nil {
+		log.Println("error in reading body:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	if err := json.Unmarshal(buf.Bytes(), &auth); err != nil {
+		log.Println("error in unmarshalling json:", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -121,6 +131,7 @@ func (s *GophermartHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	}
 	token, err := security.GenerateJwtToken(s.SecretKey, auth.Login)
 	if err != nil {
+		log.Println("error in generating token:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -144,6 +155,7 @@ func (s *GophermartHandlers) AddOrder(w http.ResponseWriter, r *http.Request) {
 	// читаем тело запроса
 	_, err := buf.ReadFrom(r.Body)
 	if err != nil {
+		log.Println("error in reading body:", err)
 		w.WriteHeader(http.StatusBadRequest) // неверный формат запроса
 		return
 	}
@@ -176,7 +188,7 @@ func (s *GophermartHandlers) AddOrder(w http.ResponseWriter, r *http.Request) {
 		customer := NewCustomer(customerFromModel)
 
 		if err != nil {
-			log.Println("error in get user by order:", err)
+			log.Println("error in getting user by order:", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -198,17 +210,11 @@ func (s *GophermartHandlers) GetOrders(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	userLogin := r.Header.Get("x-user")
-	log.Println("userLogin:", userLogin)
-	// в некоторых местах и такой проверки нет!!!!!!!!!!!!!!!!!!!!
-	// TODO userLogin не моежт быть пустым, он проверяется в middleware. Убрать здесь и везде
-	if userLogin == "" { // достаточно ли проверки, что это не пустая строка??????????????
-		w.WriteHeader(http.StatusUnauthorized) // пользователь не авторизован
-		return
-	}
+
 	customer, err := s.GmStorage.GetCustomerByLogin(userLogin)
-	log.Println("customer:", *customer)
+	log.Println("user from get customer by login:", *customer)
 	if err != nil {
-		log.Println(err)
+		log.Println("error in getting user by login:", err)
 		w.WriteHeader(http.StatusInternalServerError) // ошибка с БД
 		return
 	}
@@ -230,18 +236,17 @@ func (s *GophermartHandlers) GetOrders(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent) // нет данных для ответа
 		return
 	}
-	orderListResponse := NewOrderListResponse(orders)
-	log.Println(orderListResponse)
+
 	resp, err := json.Marshal(NewOrderListResponse(orders))
 	if err != nil {
-		log.Println(err)
+		log.Println("error in marshalling json:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	_, err = w.Write(resp)
 	if err != nil {
-		log.Println(err)
+		log.Println("error in writing resp:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -259,6 +264,7 @@ func (s *GophermartHandlers) GetBalance(w http.ResponseWriter, r *http.Request) 
 
 	customer, err := s.GmStorage.GetCustomerByLogin(userLogin)
 	if err != nil {
+		log.Println("error in getting customer by login:", err)
 		w.WriteHeader(http.StatusInternalServerError) // ошибка с БД
 		return
 	}
@@ -268,14 +274,14 @@ func (s *GophermartHandlers) GetBalance(w http.ResponseWriter, r *http.Request) 
 	}
 	pointsAccrual, err := s.GmStorage.GetAccrualPoints(customer.ID)
 	if err != nil && err != sql.ErrNoRows {
-		log.Println(err)
+		log.Println("error in getting accrual points:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	pointsWithdrawal, err := s.GmStorage.GetWithdrawalPoints(customer.ID)
 	if err != nil && err != sql.ErrNoRows {
-		log.Println(err)
+		log.Println("error in getting withdrawal points:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -287,14 +293,14 @@ func (s *GophermartHandlers) GetBalance(w http.ResponseWriter, r *http.Request) 
 
 	resp, err := json.Marshal(points)
 	if err != nil {
-		log.Println(err)
+		log.Println("error in marshalling json:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	_, err = w.Write(resp)
 	if err != nil {
-		log.Println(err)
+		log.Println("error in writing resp:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -309,9 +315,7 @@ func (s *GophermartHandlers) PostWithdraw(w http.ResponseWriter, r *http.Request
 	}
 
 	userLogin := r.Header.Get("x-user")
-	if userLogin == "" {
-		w.WriteHeader(http.StatusUnauthorized) // пользователь не авторизован
-	}
+
 	customer, err := s.GmStorage.GetCustomerByLogin(userLogin)
 	if err != nil {
 		log.Println(err)
@@ -329,13 +333,14 @@ func (s *GophermartHandlers) PostWithdraw(w http.ResponseWriter, r *http.Request
 	// читаем тело запроса
 	_, err = buf.ReadFrom(r.Body)
 	if err != nil {
+		log.Println("error in reading body:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	if err := json.Unmarshal(buf.Bytes(), &wreq); err != nil {
-		log.Println("error in unmarshalling:", err)
-		w.WriteHeader(http.StatusInternalServerError)
+		log.Println("error in unmarshalling json:", err)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -360,19 +365,11 @@ func (s *GophermartHandlers) PostWithdraw(w http.ResponseWriter, r *http.Request
 
 	err = s.GmStorage.Withdraw(wreq.OrderNumber, wreq.Sum, customer.ID)
 	if err != nil {
-		log.Println(err)
+		log.Printf("error %v in withdrawing points of user %d", err, customer.ID)
 		w.WriteHeader(http.StatusInternalServerError) // внутренняя ошибка сервера
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-}
-
-func NewTransactionWListResponse(transactions []model.TransactionW) []WithdrawalTxResponse {
-	res := []WithdrawalTxResponse{}
-	for _, transaction := range transactions {
-		res = append(res, NewWithdrawalTxResponse(transaction))
-	}
-	return res
 }
 
 // Хендлер доступен только авторизованному пользователю
@@ -384,12 +381,10 @@ func (s *GophermartHandlers) GetWithdrawals(w http.ResponseWriter, r *http.Reque
 	w.Header().Set("Content-Type", "application/json")
 
 	userLogin := r.Header.Get("x-user")
-	if userLogin == "" {
-		w.WriteHeader(http.StatusUnauthorized) // пользователь не авторизован
-	}
+
 	customer, err := s.GmStorage.GetCustomerByLogin(userLogin)
 	if err != nil {
-		log.Println(err)
+		log.Printf("error %v in getting user by login %s", err, userLogin)
 		w.WriteHeader(http.StatusInternalServerError) // ошибка с БД
 		return
 	}
@@ -400,7 +395,7 @@ func (s *GophermartHandlers) GetWithdrawals(w http.ResponseWriter, r *http.Reque
 
 	transactions, err := s.GmStorage.WithdrawalsByUser(customer.ID)
 	if err != nil {
-		log.Println(err)
+		log.Printf("error %v in getting withdrawals of user %d", err, customer.ID)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -410,16 +405,16 @@ func (s *GophermartHandlers) GetWithdrawals(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	resp, err := json.Marshal(NewTransactionWListResponse(transactions)) // NewTransactionWListResponse(transactions)
+	resp, err := json.Marshal(NewWithdrawalTxListResponse(transactions))
 	if err != nil {
-		log.Println(err)
+		log.Println("error in marshalling txs", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	_, err = w.Write(resp)
 	if err != nil {
-		log.Println(err)
+		log.Println("error in writing resp:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -431,26 +426,27 @@ func (s *GophermartHandlers) RegisterCustomer(w http.ResponseWriter, r *http.Req
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	log.Println("In RegisterCustomer handler")
 	var buf bytes.Buffer
 	var customer Customer
 
 	// читаем тело запроса
 	_, err := buf.ReadFrom(r.Body)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest) // неверный формат запроса
+		log.Println("error in reading body:", err)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	if err := json.Unmarshal(buf.Bytes(), &customer); err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
+		log.Println("error in unmarshalling json:", err)
+		w.WriteHeader(http.StatusBadRequest) // неверный формат запроса
 		return
 	}
 
 	err = s.GmStorage.AddUser(customer.Login, customer.Password)
 	if err != nil {
 		if model.IsUserExistsErr(err) {
+			log.Printf("error %v in registering user %s", err, customer.Login)
 			w.WriteHeader(http.StatusConflict)
 			return
 		}
@@ -460,6 +456,7 @@ func (s *GophermartHandlers) RegisterCustomer(w http.ResponseWriter, r *http.Req
 
 	token, err := security.GenerateJwtToken(s.SecretKey, customer.Login)
 	if err != nil {
+		log.Printf("error %v in generating token for login %s", err, customer.Login)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

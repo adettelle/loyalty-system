@@ -72,18 +72,6 @@ func CreateTable(db *sql.DB, ctx context.Context) error { // user
 		return err
 	}
 
-	// sqlStReward := `create table if not exists reward
-	// 	(id serial primary key,
-	// 	title varchar(60),
-	// 	product_id integer references product (id),
-	// 	description varchar(255),
-	// 	reward_type varchar(30) not null);`
-
-	// _, err = db.ExecContext(ctx, sqlStReward)
-	// if err != nil {
-	// 	return err
-	// }
-
 	return nil
 }
 
