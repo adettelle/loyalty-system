@@ -202,7 +202,7 @@ func (gh *GophermartHandlers) AddOrder(w http.ResponseWriter, r *http.Request) {
 }
 
 // Хендлер доступен только авторизованному пользователю
-func (s *GophermartHandlers) GetOrders(w http.ResponseWriter, r *http.Request) {
+func (gh *GophermartHandlers) GetOrders(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -211,7 +211,7 @@ func (s *GophermartHandlers) GetOrders(w http.ResponseWriter, r *http.Request) {
 
 	userLogin := r.Header.Get("x-user")
 
-	customer, err := s.GmStorage.GetCustomerByLogin(userLogin)
+	customer, err := gh.GmStorage.GetCustomerByLogin(userLogin)
 	log.Println("user from get customer by login:", *customer)
 	if err != nil {
 		log.Println("error in getting user by login:", err)
@@ -224,7 +224,7 @@ func (s *GophermartHandlers) GetOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	orders, err := s.GmStorage.GetOrdersByUser(customer.ID)
+	orders, err := gh.GmStorage.GetOrdersByUser(customer.ID)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -421,7 +421,7 @@ func (gh *GophermartHandlers) GetWithdrawals(w http.ResponseWriter, r *http.Requ
 	w.WriteHeader(http.StatusOK)
 }
 
-func (s *GophermartHandlers) RegisterCustomer(w http.ResponseWriter, r *http.Request) {
+func (gh *GophermartHandlers) RegisterCustomer(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -443,7 +443,7 @@ func (s *GophermartHandlers) RegisterCustomer(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	err = s.GmStorage.AddUser(customer.Login, customer.Password)
+	err = gh.GmStorage.AddUser(customer.Login, customer.Password)
 	if err != nil {
 		if model.IsUserExistsErr(err) {
 			log.Printf("error %v in registering user %s", err, customer.Login)
@@ -454,7 +454,7 @@ func (s *GophermartHandlers) RegisterCustomer(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	token, err := security.GenerateJwtToken(s.SecretKey, customer.Login)
+	token, err := security.GenerateJwtToken(gh.SecretKey, customer.Login)
 	if err != nil {
 		log.Printf("error %v in generating token for login %s", err, customer.Login)
 		w.WriteHeader(http.StatusInternalServerError)
