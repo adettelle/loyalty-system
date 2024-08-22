@@ -270,7 +270,7 @@ func (gs *GophermartStorage) AddUser(login string, password string) error {
 }
 
 // GetAllProcessingOrders находит все заказы состатусом new и меняет их статус на processing
-func (gs *GophermartStorage) GetAllProcessingOrders() ([]Order, error) {
+func (gs *GophermartStorage) GetAllNewOrdersChangeToProcessing() ([]Order, error) {
 	orders := make([]Order, 0)
 
 	sqlSt := `update "order" set status = 'PROCESSING' where status = 'NEW' returning id, "number", status;`
