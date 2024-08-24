@@ -11,6 +11,9 @@ import (
 	"github.com/adettelle/loyalty-system/internal/gophermart/model"
 )
 
+// (количество задач, которое одновременно происходит в worker pool)
+const workerLimit = 5
+
 type AccrualSystem struct {
 	// DB  *sql.DB
 	URI       string
@@ -73,9 +76,6 @@ func GetOrderFromAccrualSystem(number string, url string) (OrderStatsResp, error
 
 	return ord, nil
 }
-
-// (количество задач, которое одновременно происходит в worker pool)
-const workerLimit = 5
 
 func (as *AccrualSystem) AccrualLoop() {
 	jobs := make(chan model.Order, workerLimit)
@@ -154,24 +154,3 @@ func (as *AccrualSystem) worker(jobs <-chan model.Order) {
 		//result <- order
 	}
 }
-
-// где это должно быть???
-// func MyMain() {
-// 	// пусть не больше 5 запросов уходит
-// 	jobs := make(chan model.Order, 10) // каакой размер канала????????????????
-// 	// results := make(chan model.Order, 10) // каакой размер канала????????????????
-
-// 	// как стартовать worker???????????????????
-// 	// почему в прримере три отдельных цикла??? можно ли это будет один цикл? или два(w и j) (result отдельно)
-// 	for range 5 {
-// 		go worker(jobs) // он же не запустится??????????????????? , results
-// 	}
-
-// 	for _, ord := range ordersWithProcessingStatus {
-// 		jobs <- ord
-// 	}
-
-// 	// for a := 1; a <= len(ordersWithProcessingStatus); a++ {
-// 	// 	<-results
-// 	// }
-// }

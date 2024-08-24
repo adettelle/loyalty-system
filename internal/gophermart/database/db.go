@@ -1,78 +1,32 @@
 package database
 
 import (
-	"context"
 	"database/sql"
+	"embed"
 	"log"
 
+	"github.com/adettelle/loyalty-system/internal/migrator"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-func CreateTable(db *sql.DB, ctx context.Context) error { // user
-	sqlStCustomer := `create table if not exists customer 
-		(id serial primary key, 
-		login varchar(100) not null,
-		password varchar(255) not null,
-		created_at timestamp not null default now(),
-		unique(login));`
+const migrationsDir = "migration"
 
-	_, err := db.ExecContext(ctx, sqlStCustomer)
+//go:embed migration/*.sql
+var MigrationsFS embed.FS
+
+func DoMigration(db *sql.DB) {
+	// --- (1) ----
+	// Восстанавливаем «Migrator»
+	migrator := migrator.MustGetNewMigrator(MigrationsFS, migrationsDir)
+
+	// --- (2) ----
+	// Применяем миграции
+	err := migrator.ApplyMigrations(db)
 	if err != nil {
-		return err
+		log.Fatal(err)
 	}
 
-	sqlStOrder := `create table if not exists "order"
-		(id serial primary key,
-		customer_id integer, 
-		number text,
-		status varchar(30) not null, 
-		created_at timestamp not null default now(),
-		foreign key (customer_id) references customer (id),
-		unique(number, customer_id));`
-
-	_, err = db.ExecContext(ctx, sqlStOrder)
-	if err != nil {
-		return err
-	}
-
-	sqlStLoyalty := `create table if not exists loyalty_system
-		(id serial primary key,
-		customer_id integer, 
-		order_id integer,
-		points double precision,
-		transacton varchar(30), 
-		created_at timestamp not null default now(),
-		unique(customer_id, order_id),
-		foreign key (customer_id) references customer (id),
-		foreign key (order_id) references "order" (id));`
-
-	_, err = db.ExecContext(ctx, sqlStLoyalty)
-	if err != nil {
-		return err
-	}
-
-	sqlStProduct := `create table if not exists product
-		(id serial primary key,
-		title varchar(60), 
-		price integer);`
-
-	_, err = db.ExecContext(ctx, sqlStProduct)
-	if err != nil {
-		return err
-	}
-
-	sqlStOrderProduct := `create table if not exists order_product
-		(id serial primary key,
-		order_id integer references "order" (id), 
-		product_id integer references product (id),
-		amount integer);`
-
-	_, err = db.ExecContext(ctx, sqlStOrderProduct)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	log.Printf("Migrations applied!!")
 }
 
 func Connect(dbParams string) (*sql.DB, error) {

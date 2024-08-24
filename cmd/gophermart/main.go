@@ -29,13 +29,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	err = database.CreateTable(db, context.Background())
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	defer db.Close()
+
+	// err = database.CreateTable(db, context.Background())
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	database.DoMigration(db)
 
 	gmStorage := model.NewGophermartStorage(db, context.Background())
 
