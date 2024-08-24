@@ -37,6 +37,12 @@ func main() {
 	// }
 	database.DoMigration(db)
 
+	// db, err = database.Connect(uri)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// defer db.Close()
+
 	gmStorage := model.NewGophermartStorage(db, context.Background())
 
 	storage := &api.GophermartHandlers{
