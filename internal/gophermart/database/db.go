@@ -14,14 +14,19 @@ const migrationsDir = "migration"
 //go:embed migration/*.sql
 var MigrationsFS embed.FS
 
-func DoMigration(db *sql.DB) {
+func DoMigration(dburi string) { //db *sql.DB,
+	db, err := Connect(dburi)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// defer db.Close()
 	// --- (1) ----
 	// Восстанавливаем «Migrator»
 	migrator := migrator.MustGetNewMigrator(MigrationsFS, migrationsDir)
 
 	// --- (2) ----
 	// Применяем миграции
-	err := migrator.ApplyMigrations(db)
+	err = migrator.ApplyMigrations(db)
 	if err != nil {
 		log.Fatal(err)
 	}

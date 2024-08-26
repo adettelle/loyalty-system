@@ -18,6 +18,7 @@ type AccrualSystem struct {
 	// DB  *sql.DB
 	URI       string
 	GmStorage *model.GophermartStorage
+	client    *http.Client
 }
 
 type OrderStatsResp struct {
@@ -34,7 +35,7 @@ func NewAccrualSystem(gmStorage *model.GophermartStorage, uri string) *AccrualSy
 }
 
 // GET /api/orders/{number}
-func GetOrderFromAccrualSystem(number string, url string) (OrderStatsResp, error) {
+func GetOrderFromAccrualSystem(number string, url string, client *http.Client) (OrderStatsResp, error) {
 	log.Printf("Retrieving order %s from accrual system", number)
 	var ord OrderStatsResp
 
@@ -47,7 +48,7 @@ func GetOrderFromAccrualSystem(number string, url string) (OrderStatsResp, error
 		return OrderStatsResp{}, err
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Do(req) //  http.DefaultClient.Do(req)
 	if err != nil {
 		log.Println("error in DefaultClient:", err)
 		return OrderStatsResp{}, err
@@ -127,7 +128,7 @@ func (as *AccrualSystem) AccrualLoop() {
 
 func (as *AccrualSystem) worker(jobs <-chan model.Order) {
 	for order := range jobs {
-		orderFromAccrual, err := GetOrderFromAccrualSystem(order.Number, as.URI)
+		orderFromAccrual, err := GetOrderFromAccrualSystem(order.Number, as.URI, as.client)
 		if err != nil {
 			log.Println("error in getting orders from accrual system with changed status:", err)
 			// возвращаем статус из processing в new

@@ -25,23 +25,17 @@ func main() {
 		uri = config.DBUri
 	}
 
+	// err = database.CreateTable(db, context.Background())
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	database.DoMigration(config.DBUri)
+
 	db, err := database.Connect(uri)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
-
-	// err = database.CreateTable(db, context.Background())
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	database.DoMigration(db)
-
-	// db, err = database.Connect(uri)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// defer db.Close()
 
 	gmStorage := model.NewGophermartStorage(db, context.Background())
 

@@ -26,7 +26,7 @@ func MustGetNewMigrator(sqlFiles embed.FS, dirName string) *Migrator {
 	}
 }
 
-func (m *Migrator) ApplyMigrations(db *sql.DB) error {
+func (m *Migrator) ApplyMigrations(db *sql.DB) error { // db *sql.DB
 	driver, err := postgres.WithInstance(db, &postgres.Config{})
 	if err != nil {
 		return fmt.Errorf("unable to create db instance: %v", err)
@@ -37,9 +37,9 @@ func (m *Migrator) ApplyMigrations(db *sql.DB) error {
 		return fmt.Errorf("unable to create migration: %v", err)
 	}
 
-	// defer func() {
-	// 	migrator.Close()
-	// }()
+	defer func() {
+		migrator.Close()
+	}()
 
 	if err = migrator.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		return fmt.Errorf("unable to apply migrations %v", err)
