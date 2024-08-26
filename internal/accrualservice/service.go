@@ -11,10 +11,14 @@ import (
 	"github.com/adettelle/loyalty-system/internal/gophermart/model"
 )
 
+// (количество задач, которое одновременно происходит в worker pool)
+const workerLimit = 5
+
 type AccrualSystem struct {
 	// DB  *sql.DB
 	URI       string
 	GmStorage *model.GophermartStorage
+	client    *http.Client
 }
 
 type OrderStatsResp struct {
@@ -23,15 +27,16 @@ type OrderStatsResp struct {
 	Accrual float64 `json:"accrual,omitempty"`
 }
 
-func NewAccrualSystem(gmStorage *model.GophermartStorage, uri string) *AccrualSystem {
+func NewAccrualSystem(gmStorage *model.GophermartStorage, uri string, client *http.Client) *AccrualSystem {
 	return &AccrualSystem{
 		URI:       uri,
 		GmStorage: gmStorage,
+		client:    client,
 	}
 }
 
 // GET /api/orders/{number}
-func GetOrderFromAccrualSystem(number string, url string) (OrderStatsResp, error) {
+func (as *AccrualSystem) GetOrderFromAccrualSystem(number string, url string) (OrderStatsResp, error) {
 	log.Printf("Retrieving order %s from accrual system", number)
 	var ord OrderStatsResp
 
@@ -44,7 +49,7 @@ func GetOrderFromAccrualSystem(number string, url string) (OrderStatsResp, error
 		return OrderStatsResp{}, err
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := as.client.Do(req) //  http.DefaultClient.Do(req)
 	if err != nil {
 		log.Println("error in DefaultClient:", err)
 		return OrderStatsResp{}, err
@@ -73,9 +78,6 @@ func GetOrderFromAccrualSystem(number string, url string) (OrderStatsResp, error
 
 	return ord, nil
 }
-
-// (количество задач, которое одновременно происходит в worker pool)
-const workerLimit = 5
 
 func (as *AccrualSystem) AccrualLoop() {
 	jobs := make(chan model.Order, workerLimit)
@@ -127,7 +129,7 @@ func (as *AccrualSystem) AccrualLoop() {
 
 func (as *AccrualSystem) worker(jobs <-chan model.Order) {
 	for order := range jobs {
-		orderFromAccrual, err := GetOrderFromAccrualSystem(order.Number, as.URI)
+		orderFromAccrual, err := as.GetOrderFromAccrualSystem(order.Number, as.URI)
 		if err != nil {
 			log.Println("error in getting orders from accrual system with changed status:", err)
 			// возвращаем статус из processing в new
@@ -154,24 +156,3 @@ func (as *AccrualSystem) worker(jobs <-chan model.Order) {
 		//result <- order
 	}
 }
-
-// где это должно быть???
-// func MyMain() {
-// 	// пусть не больше 5 запросов уходит
-// 	jobs := make(chan model.Order, 10) // каакой размер канала????????????????
-// 	// results := make(chan model.Order, 10) // каакой размер канала????????????????
-
-// 	// как стартовать worker???????????????????
-// 	// почему в прримере три отдельных цикла??? можно ли это будет один цикл? или два(w и j) (result отдельно)
-// 	for range 5 {
-// 		go worker(jobs) // он же не запустится??????????????????? , results
-// 	}
-
-// 	for _, ord := range ordersWithProcessingStatus {
-// 		jobs <- ord
-// 	}
-
-// 	// for a := 1; a <= len(ordersWithProcessingStatus); a++ {
-// 	// 	<-results
-// 	// }
-// }

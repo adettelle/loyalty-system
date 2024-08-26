@@ -450,6 +450,7 @@ func (gh *GophermartHandlers) RegisterCustomer(w http.ResponseWriter, r *http.Re
 			w.WriteHeader(http.StatusConflict)
 			return
 		}
+		log.Println("error in adding user:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
