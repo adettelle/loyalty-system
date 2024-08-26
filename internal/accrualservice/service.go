@@ -27,15 +27,16 @@ type OrderStatsResp struct {
 	Accrual float64 `json:"accrual,omitempty"`
 }
 
-func NewAccrualSystem(gmStorage *model.GophermartStorage, uri string) *AccrualSystem {
+func NewAccrualSystem(gmStorage *model.GophermartStorage, uri string, client *http.Client) *AccrualSystem {
 	return &AccrualSystem{
 		URI:       uri,
 		GmStorage: gmStorage,
+		client:    client,
 	}
 }
 
 // GET /api/orders/{number}
-func GetOrderFromAccrualSystem(number string, url string, client *http.Client) (OrderStatsResp, error) {
+func (as *AccrualSystem) GetOrderFromAccrualSystem(number string, url string) (OrderStatsResp, error) {
 	log.Printf("Retrieving order %s from accrual system", number)
 	var ord OrderStatsResp
 
@@ -48,7 +49,7 @@ func GetOrderFromAccrualSystem(number string, url string, client *http.Client) (
 		return OrderStatsResp{}, err
 	}
 
-	resp, err := client.Do(req) //  http.DefaultClient.Do(req)
+	resp, err := as.client.Do(req) //  http.DefaultClient.Do(req)
 	if err != nil {
 		log.Println("error in DefaultClient:", err)
 		return OrderStatsResp{}, err
@@ -128,7 +129,7 @@ func (as *AccrualSystem) AccrualLoop() {
 
 func (as *AccrualSystem) worker(jobs <-chan model.Order) {
 	for order := range jobs {
-		orderFromAccrual, err := GetOrderFromAccrualSystem(order.Number, as.URI, as.client)
+		orderFromAccrual, err := as.GetOrderFromAccrualSystem(order.Number, as.URI)
 		if err != nil {
 			log.Println("error in getting orders from accrual system with changed status:", err)
 			// возвращаем статус из processing в new

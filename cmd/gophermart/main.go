@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/adettelle/loyalty-system/internal/accrualservice"
 	"github.com/adettelle/loyalty-system/internal/gophermart/api"
@@ -49,7 +50,11 @@ func main() {
 
 	r := api.NewRouter(storage)
 
-	accrualSystem := accrualservice.NewAccrualSystem(gmStorage, config.AccrualSystemAddress)
+	client := &http.Client{
+		Timeout: time.Second * 2, // интервал ожидания: 2 секунды
+	}
+
+	accrualSystem := accrualservice.NewAccrualSystem(gmStorage, config.AccrualSystemAddress, client)
 
 	accrualSystem.AccrualLoop()
 
