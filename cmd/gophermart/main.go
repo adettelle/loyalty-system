@@ -17,20 +17,16 @@ import (
 func main() {
 	var uri string
 
-	config, err := config.New()
+	conf, err := config.New()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if config.DBUri != "" {
-		uri = config.DBUri
+	if conf.DBUri != "" {
+		uri = conf.DBUri
 	}
 
-	// err = database.CreateTable(db, context.Background())
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	database.DoMigration(config.DBUri)
+	database.DoMigration(conf.DBUri)
 
 	db, err := database.Connect(uri)
 	if err != nil {
@@ -42,10 +38,10 @@ func main() {
 
 	storage := &api.GophermartHandlers{
 		GmStorage: gmStorage,
-		SecretKey: []byte(config.Key),
+		SecretKey: []byte(conf.Key),
 	}
 
-	address := config.Address //"localhost:8080"
+	address := conf.Address //"localhost:8080"
 	fmt.Println("Starting server at address:", address)
 
 	r := api.NewRouter(storage)
@@ -54,7 +50,7 @@ func main() {
 		Timeout: time.Second * 2, // интервал ожидания: 2 секунды
 	}
 
-	accrualSystem := accrualservice.NewAccrualSystem(gmStorage, config.AccrualSystemAddress, client)
+	accrualSystem := accrualservice.NewAccrualSystem(gmStorage, conf.AccrualSystemAddress, client)
 
 	accrualSystem.AccrualLoop()
 
