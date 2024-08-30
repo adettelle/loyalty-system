@@ -12,6 +12,7 @@ import (
 	"github.com/adettelle/loyalty-system/internal/gophermart/config"
 	"github.com/adettelle/loyalty-system/internal/gophermart/database"
 	"github.com/adettelle/loyalty-system/internal/gophermart/model"
+	"github.com/adettelle/loyalty-system/internal/migrator"
 )
 
 func main() {
@@ -26,7 +27,7 @@ func main() {
 		uri = conf.DBUri
 	}
 
-	database.DoMigration(conf.DBUri)
+	migrator.MustApplyMigrations(conf.DBUri)
 
 	db, err := database.Connect(uri)
 	if err != nil {
@@ -34,7 +35,7 @@ func main() {
 	}
 	defer db.Close()
 
-	gmStorage := model.NewGophermartStorage(db, context.Background())
+	gmStorage := model.NewGophermartStorage(db)
 
 	storage := &api.GophermartHandlers{
 		GmStorage: gmStorage,
@@ -52,7 +53,7 @@ func main() {
 
 	accrualSystem := accrualservice.NewAccrualSystem(gmStorage, conf.AccrualSystemAddress, client)
 
-	accrualSystem.AccrualLoop()
+	accrualSystem.AccrualLoop(context.Background())
 
 	err = http.ListenAndServe(address, r)
 	if err != nil {
