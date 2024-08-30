@@ -14,7 +14,6 @@ import (
 	"github.com/adettelle/loyalty-system/internal/gophermart/jwt"
 	"github.com/adettelle/loyalty-system/internal/gophermart/model"
 
-	// "github.com/adettelle/loyalty-system/pkg/mware/security"
 	"github.com/adettelle/loyalty-system/pkg/validation/luhn"
 )
 
