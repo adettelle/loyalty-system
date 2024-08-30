@@ -2,6 +2,7 @@ package accrualservice
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -15,7 +16,6 @@ import (
 const workerLimit = 5
 
 type AccrualSystem struct {
-	// DB  *sql.DB
 	URI       string
 	GmStorage *model.GophermartStorage
 	client    *http.Client
@@ -51,7 +51,7 @@ func (as *AccrualSystem) GetOrderFromAccrualSystem(number string, url string) (O
 
 	resp, err := as.client.Do(req) //  http.DefaultClient.Do(req)
 	if err != nil {
-		log.Println("error in DefaultClient:", err)
+		log.Println("error in client:", err)
 		return OrderStatsResp{}, err
 	}
 
@@ -79,18 +79,18 @@ func (as *AccrualSystem) GetOrderFromAccrualSystem(number string, url string) (O
 	return ord, nil
 }
 
-func (as *AccrualSystem) AccrualLoop() {
+func (as *AccrualSystem) AccrualLoop(ctx context.Context) {
 	jobs := make(chan model.Order, workerLimit)
 
 	for range workerLimit {
-		go as.worker(jobs)
+		go as.worker(ctx, jobs)
 	}
 
 	go func() {
 		ticker := time.NewTicker(time.Second * 2)
 
 		for range ticker.C {
-			ordersWithProcessingStatus, err := as.GmStorage.GetAllNewOrdersChangeToProcessing()
+			ordersWithProcessingStatus, err := as.GmStorage.GetAllNewOrdersChangeToProcessing(ctx)
 			log.Println("Orders with new status:", ordersWithProcessingStatus)
 			if err != nil {
 				log.Println("error in getting orders with status 'processing':", err)
@@ -98,42 +98,18 @@ func (as *AccrualSystem) AccrualLoop() {
 			}
 			for _, ord := range ordersWithProcessingStatus {
 				jobs <- ord
-				// orderFromAccrual, err := GetOrderFromAccrualSystem(ord.Number, as.URI)
-				// if err != nil {
-				// 	// возвращаем статус из processing в new
-				// 	err = as.GmStorage.UpdateOrderStatus(model.StatusNew, ord.Number)
-				// 	if err != nil {
-				// 		log.Println("error in updating status (to new):", err)
-				// 		continue
-				// 	}
-				// 	log.Println("error in getting orders from accrual system with changed status:", err)
-				// 	continue
-				// }
-				// log.Println("Orders from accrual system:", orderFromAccrual)
-
-				// err = as.GmStorage.UpdateOrderStatus(orderFromAccrual.Status, ord.Number)
-				// if err != nil {
-				// 	log.Println("error in updating status of orders:", err)
-				// 	continue
-				// }
-
-				// err = as.GmStorage.UpdateAccrualPoints(orderFromAccrual.Accrual, ord.Number)
-				// if err != nil {
-				// 	log.Println("error in updating points of orders:", err)
-				// 	continue
-				// }
 			}
 		}
 	}()
 }
 
-func (as *AccrualSystem) worker(jobs <-chan model.Order) {
+func (as *AccrualSystem) worker(ctx context.Context, jobs <-chan model.Order) {
 	for order := range jobs {
 		orderFromAccrual, err := as.GetOrderFromAccrualSystem(order.Number, as.URI)
 		if err != nil {
 			log.Println("error in getting orders from accrual system with changed status:", err)
 			// возвращаем статус из processing в new
-			err = as.GmStorage.UpdateOrderStatus(model.StatusNew, order.Number)
+			err = as.GmStorage.UpdateOrderStatus(ctx, model.StatusNew, order.Number)
 			if err != nil {
 				log.Println("error in updating status (to new):", err)
 				continue
@@ -142,13 +118,13 @@ func (as *AccrualSystem) worker(jobs <-chan model.Order) {
 		}
 		log.Println("Orders from accrual system:", orderFromAccrual)
 
-		err = as.GmStorage.UpdateOrderStatus(orderFromAccrual.Status, order.Number)
+		err = as.GmStorage.UpdateOrderStatus(ctx, orderFromAccrual.Status, order.Number)
 		if err != nil {
 			log.Println("error in updating status of orders:", err)
 			continue
 		}
 
-		err = as.GmStorage.UpdateAccrualPoints(orderFromAccrual.Accrual, order.Number)
+		err = as.GmStorage.UpdateAccrualPoints(ctx, orderFromAccrual.Accrual, order.Number)
 		if err != nil {
 			log.Println("error in updating points of orders:", err)
 			continue

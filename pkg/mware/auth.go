@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/adettelle/loyalty-system/pkg/mware/security"
+	"github.com/adettelle/loyalty-system/internal/gophermart/jwt"
 )
 
 // AuthMwr добавляет аутентификацию пользователя и возвращает новый http.Handler
@@ -25,7 +25,7 @@ func AuthMwr(h http.HandlerFunc, secret []byte) http.HandlerFunc {
 			return
 		}
 
-		login, ok := security.VerifyToken(secret, bearerToken[1])
+		login, ok := jwt.VerifyToken(secret, bearerToken[1])
 		if !ok {
 			w.WriteHeader(http.StatusUnauthorized) // пользователь не аутентифицирован
 			return
