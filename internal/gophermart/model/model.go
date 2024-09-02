@@ -18,8 +18,6 @@ const (
 	StatusProcessed       = "PROCESSED"
 	TransactionAccrual    = `accrual`
 	TransactionWithdrawal = `withdrawal`
-	// RewardTypePercent     = `percent`
-	// RewardTypePoints      = `points`
 )
 
 type Order struct {

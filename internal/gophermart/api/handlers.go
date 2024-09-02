@@ -35,7 +35,7 @@ type withdrawalTxResponseDTO struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
-func NewWithdrawalTxResponse(transaction model.TxWithdraw) withdrawalTxResponseDTO {
+func NewWithdrawalTxResponse(transaction model.Operation) withdrawalTxResponseDTO {
 	return withdrawalTxResponseDTO{
 		OrderNumber: transaction.OrderNumber,
 		Points:      transaction.Points,
@@ -43,7 +43,7 @@ func NewWithdrawalTxResponse(transaction model.TxWithdraw) withdrawalTxResponseD
 	}
 }
 
-func NewWithdrawalTxListResponse(transactions []model.TxWithdraw) []withdrawalTxResponseDTO {
+func NewWithdrawalTxListResponse(transactions []model.Operation) []withdrawalTxResponseDTO {
 	res := []withdrawalTxResponseDTO{}
 	for _, transaction := range transactions {
 		res = append(res, NewWithdrawalTxResponse(transaction))
@@ -197,8 +197,6 @@ func (gh *GophermartHandlers) AddOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusConflict) // номер заказа уже был загружен другим пользователем
-	return
-
 }
 
 // Хендлер доступен только авторизованному пользователю
