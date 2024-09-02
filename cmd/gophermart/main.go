@@ -47,7 +47,7 @@ func main() {
 
 	accrualSystem := accrual.NewAccrualSystem(gmStorage, conf.AccrualSystemAddress, client)
 
-	accrualSystem.AccrualLoop(context.Background())
+	accrualSystem.StartAccrualLoop(context.Background())
 
 	err = http.ListenAndServe(address, r)
 	if err != nil {

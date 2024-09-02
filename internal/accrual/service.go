@@ -79,7 +79,7 @@ func (as *AccrualSystem) GetOrderFromAccrualSystem(number string, url string) (O
 	return ord, nil
 }
 
-func (as *AccrualSystem) AccrualLoop(ctx context.Context) {
+func (as *AccrualSystem) StartAccrualLoop(ctx context.Context) {
 	jobs := make(chan model.Order, workerLimit)
 
 	for range workerLimit {
