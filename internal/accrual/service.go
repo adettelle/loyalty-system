@@ -16,9 +16,9 @@ import (
 const workerLimit = 5
 
 type AccrualSystem struct {
-	URI       string
-	GmStorage *model.GophermartStorage
-	client    *http.Client
+	URI     string
+	Storage *model.GophermartStorage
+	client  *http.Client
 }
 
 type OrderStatsResp struct {
@@ -27,11 +27,11 @@ type OrderStatsResp struct {
 	Accrual float64 `json:"accrual,omitempty"`
 }
 
-func NewAccrualSystem(gmStorage *model.GophermartStorage, uri string, client *http.Client) *AccrualSystem {
+func NewAccrualSystem(Storage *model.GophermartStorage, uri string, client *http.Client) *AccrualSystem {
 	return &AccrualSystem{
-		URI:       uri,
-		GmStorage: gmStorage,
-		client:    client,
+		URI:     uri,
+		Storage: Storage,
+		client:  client,
 	}
 }
 
@@ -90,7 +90,7 @@ func (as *AccrualSystem) StartAccrualLoop(ctx context.Context) {
 		ticker := time.NewTicker(time.Second * 2)
 
 		for range ticker.C {
-			ordersWithProcessingStatus, err := as.GmStorage.GetAllNewOrdersChangeToProcessing(ctx)
+			ordersWithProcessingStatus, err := as.Storage.GetAllNewOrdersChangeToProcessing(ctx)
 			log.Println("Orders with new status:", ordersWithProcessingStatus)
 			if err != nil {
 				log.Println("error in getting orders with status 'processing':", err)
@@ -109,7 +109,7 @@ func (as *AccrualSystem) worker(ctx context.Context, jobs <-chan model.Order) {
 		if err != nil {
 			log.Println("error in getting orders from accrual system with changed status:", err)
 			// возвращаем статус из processing в new
-			err = as.GmStorage.UpdateOrderStatus(ctx, model.StatusNew, order.Number)
+			err = as.Storage.UpdateOrderStatus(ctx, model.StatusNew, order.Number)
 			if err != nil {
 				log.Println("error in updating status (to new):", err)
 				continue
@@ -118,13 +118,13 @@ func (as *AccrualSystem) worker(ctx context.Context, jobs <-chan model.Order) {
 		}
 		log.Println("Orders from accrual system:", orderFromAccrual)
 
-		err = as.GmStorage.UpdateOrderStatus(ctx, orderFromAccrual.Status, order.Number)
+		err = as.Storage.UpdateOrderStatus(ctx, orderFromAccrual.Status, order.Number)
 		if err != nil {
 			log.Println("error in updating status of orders:", err)
 			continue
 		}
 
-		err = as.GmStorage.UpdateAccrualPoints(ctx, orderFromAccrual.Accrual, order.Number)
+		err = as.Storage.UpdateAccrualPoints(ctx, orderFromAccrual.Accrual, order.Number)
 		if err != nil {
 			log.Println("error in updating points of orders:", err)
 			continue
