@@ -1,4 +1,4 @@
-package accrualservice
+package accrual
 
 import (
 	"bytes"
