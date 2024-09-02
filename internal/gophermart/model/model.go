@@ -38,7 +38,7 @@ type Customer struct {
 }
 
 // транзакция списания
-type TxWithdraw struct {
+type Operation struct {
 	OrderNumber string
 	Points      float64
 	CreatedAt   time.Time
@@ -194,8 +194,8 @@ func (gs *GophermartStorage) Withdraw(ctx context.Context, order string, sum flo
 }
 
 // WithdrawalsByUser показывает все транзакции с выводом средств
-func (gs *GophermartStorage) WithdrawalsByUser(ctx context.Context, userID int) ([]TxWithdraw, error) {
-	transactions := make([]TxWithdraw, 0)
+func (gs *GophermartStorage) WithdrawalsByUser(ctx context.Context, userID int) ([]Operation, error) {
+	transactions := make([]Operation, 0)
 	sqlSt := `select ord."number", ls.points, ls.created_at 
 		from loyalty_system ls 
 		join "order" ord
@@ -211,13 +211,13 @@ func (gs *GophermartStorage) WithdrawalsByUser(ctx context.Context, userID int) 
 
 	// пробегаем по всем записям
 	for rows.Next() {
-		var tr TxWithdraw
-		err := rows.Scan(&tr.OrderNumber, &tr.Points, &tr.CreatedAt)
+		var tx Operation
+		err := rows.Scan(&tx.OrderNumber, &tx.Points, &tx.CreatedAt)
 		if err != nil || rows.Err() != nil {
 			return nil, err
 		}
 
-		transactions = append(transactions, tr)
+		transactions = append(transactions, tx)
 	}
 	return transactions, nil
 }
