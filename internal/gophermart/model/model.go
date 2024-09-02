@@ -45,13 +45,11 @@ type TxWithdraw struct {
 }
 
 type GophermartStorage struct {
-	// Ctx context.Context
 	DB *sql.DB
 }
 
-func NewGophermartStorage(db *sql.DB) *GophermartStorage { // , ctx context.Context
+func NewGophermartStorage(db *sql.DB) *GophermartStorage {
 	return &GophermartStorage{
-		// Ctx: ctx,
 		DB: db,
 	}
 }

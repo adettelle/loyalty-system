@@ -55,9 +55,9 @@ type orderResponseDTO struct {
 	Number     string    `json:"number"`
 	Status     string    `json:"status"`
 	Points     *float64  `json:"points,omitempty"`
-	Accrual    float64   `json:"accrual"`              //,omitempty
-	Withdrawal float64   `json:"withdrawal,omitempty"` //
-	CreatedAt  time.Time `json:"uploaded_at"`          // created_at
+	Accrual    float64   `json:"accrual"`
+	Withdrawal float64   `json:"withdrawal,omitempty"`
+	CreatedAt  time.Time `json:"uploaded_at"`
 }
 
 type customerDTO struct {
@@ -75,10 +75,6 @@ type withdrawRequest struct {
 	OrderNumber string  `json:"order"`
 	Sum         float64 `json:"sum"`
 }
-
-// type OrdersListResponse struct {
-// 	Orders []OrderResponse `json:"orders"`
-// }
 
 func NewCustomer(customer *model.Customer) *customerDTO {
 	return &customerDTO{
@@ -154,7 +150,6 @@ func (gh *GophermartHandlers) AddOrder(w http.ResponseWriter, r *http.Request) {
 	userLogin := r.Header.Get("x-user")
 
 	var buf bytes.Buffer
-	// var customer Customer
 
 	// читаем тело запроса
 	_, err := buf.ReadFrom(r.Body)
@@ -187,22 +182,23 @@ func (gh *GophermartHandlers) AddOrder(w http.ResponseWriter, r *http.Request) {
 		}
 		w.WriteHeader(http.StatusAccepted) // новый номер заказа принят в обработку
 		return
-	} else {
-		customerFromModel, err := gh.GmStorage.GetUserByOrder(context.Background(), numOrder)
-		customer := NewCustomer(customerFromModel)
+	}
 
-		if err != nil {
-			log.Println("error in getting user by order:", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		if userLogin == customer.Login {
-			w.WriteHeader(http.StatusOK) // номер заказа уже был загружен этим пользователем
-			return
-		}
-		w.WriteHeader(http.StatusConflict) // номер заказа уже был загружен другим пользователем
+	customerFromModel, err := gh.GmStorage.GetUserByOrder(context.Background(), numOrder)
+	customer := NewCustomer(customerFromModel)
+
+	if err != nil {
+		log.Println("error in getting user by order:", err)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	if userLogin == customer.Login {
+		w.WriteHeader(http.StatusOK) // номер заказа уже был загружен этим пользователем
+		return
+	}
+	w.WriteHeader(http.StatusConflict) // номер заказа уже был загружен другим пользователем
+	return
+
 }
 
 // Хендлер доступен только авторизованному пользователю

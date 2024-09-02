@@ -16,20 +16,14 @@ import (
 )
 
 func main() {
-	var uri string
-
 	conf, err := config.New()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if conf.DBUri != "" {
-		uri = conf.DBUri
-	}
-
 	migrator.MustApplyMigrations(conf.DBUri)
 
-	db, err := database.Connect(uri)
+	db, err := database.Connect(conf.DBUri)
 	if err != nil {
 		log.Fatal(err)
 	}

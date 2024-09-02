@@ -49,7 +49,7 @@ func (as *AccrualSystem) GetOrderFromAccrualSystem(number string, url string) (O
 		return OrderStatsResp{}, err
 	}
 
-	resp, err := as.client.Do(req) //  http.DefaultClient.Do(req)
+	resp, err := as.client.Do(req)
 	if err != nil {
 		log.Println("error in client:", err)
 		return OrderStatsResp{}, err
@@ -129,6 +129,5 @@ func (as *AccrualSystem) worker(ctx context.Context, jobs <-chan model.Order) {
 			log.Println("error in updating points of orders:", err)
 			continue
 		}
-		//result <- order
 	}
 }

@@ -12,7 +12,7 @@ import (
 
 type Config struct {
 	Address              string `envconfig:"RUN_ADDRESS" flag:"a" default:"localhost:8080"`
-	DBUri                string `envconfig:"DATABASE_URI" flag:"d"`
+	DBUri                string `envconfig:"DATABASE_URI" flag:"d" default:"host=localhost port=5433 user=postgres password=password dbname=praktikum sslmode=disable"`
 	AccrualSystemAddress string `envconfig:"ACCRUAL_SYSTEM_ADDRESS" flag:"r" default:"http://localhost:8081"`
 	Key                  string `envconfig:"KEY" flag:"k"` // ключ для подписи
 }
